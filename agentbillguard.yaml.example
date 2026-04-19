@@ -1,0 +1,24 @@
+# agent-bill-guard configuration
+# Copy to agentbillguard.yaml and adjust for your team
+
+# Per-session spend cap (USD). When a session hits this, subsequent requests are blocked.
+session_budget_usd: 5.0
+
+# Daily total across all sessions (USD).
+daily_budget_usd: 20.0
+
+# Warn (but allow) at this fraction of the budget.
+warn_at: 0.8
+
+# Set to false to switch from blocking to warning-only mode.
+block_on_limit: true
+
+# Upstream LLM endpoints
+upstream_anthropic: https://api.anthropic.com
+upstream_openai: https://api.openai.com
+
+# Append-only spend ledger (one JSON line per request)
+ledger_file: ledger.jsonl
+
+# Proxy port
+port: 8788
