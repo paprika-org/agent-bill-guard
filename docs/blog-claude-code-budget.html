@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setting a hard spending limit for Claude Code sessions</title>
+  <meta name="description" content="Claude Code has no built-in session budget. Here's how to enforce a hard spending limit locally using a proxy that tracks token cost per request and blocks API calls when the cap is hit.">
+  <meta name="keywords" content="claude code spending limit, claude code budget, claude code cost control, anthropic api budget, claude code session limit, ai coding cost">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html">
+</head>
+<body style="margin:0;background:#0f1117;color:#e1e4f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;">
+
+  <div style="max-width:760px;margin:0 auto;padding:32px 20px 64px;">
+
+    <a href="/" style="display:inline-block;margin-bottom:24px;color:#8b8fa8;text-decoration:none;font-size:0.95rem;">&larr; agent-bill-guard</a>
+
+    <article style="max-width:860px;margin:0 auto;color:#e1e4f0;font-size:1.05rem;">
+      <h1 style="font-size:2.4rem;line-height:1.2;margin:0 0 24px;letter-spacing:-0.03em;">Setting a hard spending limit for Claude Code sessions</h1>
+
+      <p style="margin:0 0 18px;font-size:1.08rem;color:#c0c4d8;">The problem is pretty simple: Claude Code does not have a built-in session budget. Anthropic gives you usage controls, but those are account-wide and monthly. That is not the same thing as a <strong>claude code spending limit</strong> for one coding session, one task, or one afternoon of messing around with a repo.</p>
+
+      <p style="margin:0 0 18px;">What I wanted was much narrower. I wanted to say: this session gets <code style="background:#0d1117;color:#e1e4f0;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">$10</code>, and after that it stops. Not "warn me later." Not "show me the monthly bill." Just stop the requests when the budget is gone. Basically a real <strong>claude code budget</strong>, enforced locally, right where the requests happen.</p>
+
+      <div style="margin:28px 0;padding:18px 20px;background:rgba(220,68,68,0.12);border:1px solid rgba(220,68,68,0.4);border-radius:14px;color:#ffd7d7;">
+        <strong style="color:#ff8e8e;">Important:</strong> Anthropic account limits are not per-session limits. A monthly or account-level cap does not protect you from a single Claude Code task running longer than you expected and burning through money before you notice.
+      </div>
+
+      <p style="margin:0 0 18px;">This got annoying fast. You kick off a task, Claude Code keeps churning, you switch tabs or walk away, and you come back to a bill that is way higher than you meant to spend. Maybe it is $12. Maybe it is $30. Either way, the whole issue is that the spending control is too far away from the session itself.</p>
+
+      <p style="margin:0 0 18px;">So I built <strong style="color:#f0a500;">agent-bill-guard</strong>. It is a tiny local proxy, written in Python with the standard library only, that sits between Claude Code and the Anthropic API. It tracks token costs per request, shows a running cost counter in the terminal, and enforces a hard cap. When the session hits the cap, it returns an error response and blocks further API calls.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.3;margin:36px 0 14px;">What a Claude Code spending limit actually means</h2>
+
+      <p style="margin:0 0 18px;">When people search for something like <strong>claude code spending limit</strong> or <strong>claude code budget</strong>, I do not think they are asking how to manage their total account bill. Usually they want one of these:</p>
+
+      <p style="margin:0 0 18px;">Cap a single debugging session. Cap one autonomous task. Cap a risky refactor. Cap a weekend experiment. In other words, limit the blast radius of one run of the tool, not the entire billing account.</p>
+
+      <p style="margin:0 0 18px;">That distinction matters because the failure mode is local. The thing that hurts is not "my monthly spend is high." The thing that hurts is "this one session kept going and I did not notice in time."</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.3;margin:36px 0 14px;">How agent-bill-guard works</h2>
+
+      <p style="margin:0 0 18px;">The setup is intentionally simple and local. Claude Code already talks to an API endpoint. Instead of pointing it straight at Anthropic, you point it at the proxy. The proxy forwards requests, reads the usage fields in responses, estimates cost, keeps a running total, and once the configured budget is exceeded, it starts rejecting further requests.</p>
+
+      <p style="margin:0 0 18px;">The command looks like this:</p>
+
+      <pre style="margin:0 0 22px;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>agent-bill-guard --listen 127.0.0.1:8787 --budget-usd 10</code></pre>
+
+      <p style="margin:0 0 18px;">And the terminal output looks something like this while Claude Code is running:</p>
+
+      <pre style="margin:0 0 22px;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>[agent-bill-guard] listening on http://127.0.0.1:8787
+[agent-bill-guard] session budget: $10.00
+
+[request 1] input: 18234 tokens  output: 913 tokens
+[request 1] estimated cost: $0.41  running total: $0.41 / $10.00
+
+[request 2] input: 44102 tokens  output: 2207 tokens
+[request 2] estimated cost: $0.97  running total: $1.38 / $10.00
+
+[request 3] input: 128901 tokens  output: 6401 tokens
+[request 3] estimated cost: $2.84  running total: $4.22 / $10.00
+
+[request 4] input: 201338 tokens  output: 11092 tokens
+[request 4] estimated cost: $4.46  running total: $8.68 / $10.00
+
+[request 5] input: 73102 tokens  output: 3988 tokens
+[request 5] estimated cost: $1.61  running total: $10.29 / $10.00
+
+[agent-bill-guard] budget exceeded
+[agent-bill-guard] blocking further API calls for this session</code></pre>
+
+      <div style="margin:28px 0;padding:18px 20px;background:rgba(61,220,132,0.12);border:1px solid rgba(61,220,132,0.38);border-radius:14px;color:#d8ffe8;">
+        <strong style="color:#3ddc84;">Tip:</strong> Set the budget a bit lower than your actual comfort limit. If you genuinely do not want to spend more than $10 on a task, configure the cap at $8 or $9 — cost estimation from token counts can drift slightly, so give yourself some headroom.
+      </div>
+
+      <h2 style="font-size:1.5rem;line-height:1.3;margin:36px 0 14px;">Setup</h2>
+
+      <p style="margin:0 0 18px;">The flow is straightforward:</p>
+
+      <pre style="margin:0 0 22px;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>git clone https://github.com/paprika-org/agent-bill-guard
+cd agent-bill-guard
+python3 -m pip install .
+
+agent-bill-guard --listen 127.0.0.1:8787 --budget-usd 10</code></pre>
+
+      <p style="margin:0 0 18px;">Then point Claude Code at the proxy by setting <code style="background:#0d1117;color:#e1e4f0;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">ANTHROPIC_BASE_URL</code>:</p>
+
+      <pre style="margin:0 0 22px;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>export ANTHROPIC_BASE_URL=http://127.0.0.1:8787
+claude</code></pre>
+
+      <p style="margin:0 0 18px;">That is the whole trick. Claude Code talks to the proxy, the proxy talks to Anthropic, and you get a hard stop when the budget runs out.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.3;margin:36px 0 14px;">Limitations</h2>
+
+      <p style="margin:0 0 18px;">A few honest caveats.</p>
+
+      <p style="margin:0 0 18px;">This does not integrate with Anthropic's billing API. It is not reading some canonical invoice from the source of truth. It estimates cost from the usage fields in API responses and the model pricing table baked into the proxy. That means it can be slightly off — usually close enough to be useful, but not accurate to the cent.</p>
+
+      <p style="margin:0 0 18px;">It is also per session, because that is the problem it was built to solve. If you want org-wide spend analytics, historical dashboards, or policy controls across multiple machines, this is not that. It is a local choke point that says "enough" when a single Claude Code run goes over budget.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.3;margin:36px 0 14px;">Why this approach</h2>
+
+      <p style="margin:0 0 18px;">Mostly because I do not trust myself to babysit cost in real time. If I am using an agentic coding tool, I am paying attention to the code, not watching token counters. A hard <strong>claude code budget</strong> is simpler. I set the number, start the session, and if the task wants more than that, it fails loudly rather than quietly spending more.</p>
+
+      <p style="margin:0;">Repo: <a href="https://github.com/paprika-org/agent-bill-guard" style="color:#f0a500;">https://github.com/paprika-org/agent-bill-guard</a></p>
+    </article>
+
+  </div>
+
+</body>
+</html>
