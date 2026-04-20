@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code Hooks: What They Can (and Can't) Do for Cost Control</title>
+  <meta name="description" content="A developer-focused guide to Claude Code hooks, where they help, where they fall short for API spend tracking, and how to pair them with agent-bill-guard for budget control.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Claude Code Hooks: What They Can (and Can't) Do for Cost Control">
+  <meta property="og:description" content="Claude Code hooks are useful for behavioral governance, but they cannot see Anthropic API cost data. Here's how I pair hooks with agent-bill-guard for spend monitoring.">
+  <meta property="og:url" content="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html">
+  <meta property="og:site_name" content="agent-bill-guard">
+</head>
+<body style="margin:0;background:#0f1117;color:#e1e4f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;">
+  <div style="max-width:980px;margin:0 auto;padding:24px;">
+    <header style="margin-bottom:32px;">
+      <nav style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:14px 18px;background:#1a1d27;border:1px solid #2a2d3a;border-radius:14px;">
+        <a href="https://paprika-org.github.io/agent-bill-guard/" style="color:#f0a500;text-decoration:none;font-weight:600;">agent-bill-guard</a>
+        <span style="color:#8b8fa8;">/</span>
+        <a href="https://paprika-org.github.io/agent-bill-guard/" style="color:#e1e4f0;text-decoration:none;">Main page</a>
+        <a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html" style="color:#e1e4f0;text-decoration:none;">Cost visibility post</a>
+      </nav>
+    </header>
+
+    <main>
+      <article style="background:#1a1d27;border:1px solid #2a2d3a;border-radius:20px;padding:32px 24px;">
+        <p style="margin:0 0 10px 0;color:#f0a500;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;">Technical Blog</p>
+        <h1 style="margin:0 0 16px 0;font-size:clamp(2rem,4vw,3rem);line-height:1.15;">Claude Code Hooks: What They Can (and Can't) Do for Cost Control</h1>
+        <p style="margin:0 0 28px 0;color:#8b8fa8;font-size:1.05rem;">If you already use Claude Code hooks, you probably have the behavioral side of governance covered. The missing part is spend.</p>
+
+        <p style="margin:0 0 18px 0;">I like Claude Code hooks because they give me a clean way to attach policy to agent behavior. If I want to log every shell command, block risky tool calls, or run validation after file edits, hooks are the right mechanism. They are simple, local, and close to the agent workflow.</p>
+
+        <p style="margin:0 0 18px 0;">But after using them for a while, I ran into a limit that matters in real projects: hooks do not tell me what the session is costing. They run around tool calls, not around the Anthropic API requests themselves. So if my goal is “stop this session when it burns through $10,” hooks alone cannot do that.</p>
+
+        <p style="margin:0 0 18px 0;">That is the gap <span style="color:#f0a500;font-weight:600;">agent-bill-guard</span> fills. I still use hooks for behavioral governance, and I put agent-bill-guard in front of the Anthropic API for cost governance. The combination is what I wanted all along.</p>
+
+        <h2 style="margin:34px 0 12px 0;font-size:1.5rem;">What Claude Code hooks are good at</h2>
+        <p style="margin:0 0 18px 0;">Claude Code supports lifecycle hooks in <code style="background:#0d1117;color:#e1e4f0;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">settings.json</code>. The events include <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">PreToolUse</code>, <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">PostToolUse</code>, <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">Notification</code>, <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">Stop</code>, and <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">SubagentStop</code>. That makes them useful for things like:</p>
+
+        <ul style="margin:0 0 18px 22px;padding:0;">
+          <li style="margin:0 0 8px 0;">blocking dangerous shell commands before they run</li>
+          <li style="margin:0 0 8px 0;">logging tool usage for audit</li>
+          <li style="margin:0 0 8px 0;">running formatters or checks after edits</li>
+          <li style="margin:0 0 8px 0;">adding local guardrails without changing the app code</li>
+        </ul>
+
+        <p style="margin:0 0 14px 0;">Here is a real working hook example that logs every Bash tool invocation before it runs:</p>
+
+        <pre style="margin:0 0 22px 0;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\"\\(.tool_input.command) - \\(.tool_input.description // \"No description\")\"' &gt;&gt; ~/.claude/bash-command-log.txt"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+
+        <p style="margin:0 0 18px 0;">That is useful. I can inspect <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">~/.claude/bash-command-log.txt</code> later and see what the agent tried to do. I can also replace that logger with a validator that denies commands matching a pattern.</p>
+
+        <p style="margin:0 0 18px 0;">If your problem is “what files or commands did the agent touch?”, hooks are exactly the right abstraction.</p>
+
+        <h2 style="margin:34px 0 12px 0;font-size:1.5rem;">Where hooks stop helping</h2>
+        <p style="margin:0 0 18px 0;">The problem is that API spend is not a tool event. Claude Code might make multiple Anthropic API requests during a session, and hooks do not sit on that path. They do not intercept request payloads, response usage fields, token counts, or cumulative dollar cost.</p>
+
+        <div style="margin:0 0 22px 0;padding:16px 18px;background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.35);border-radius:14px;">
+          <p style="margin:0;color:#ffb3b3;"><strong style="color:#ff5252;">Important limitation:</strong> Claude Code hooks can govern agent behavior, but they cannot reliably answer “how much has this session spent so far?” and they cannot enforce a hard budget cap on Anthropic API usage.</p>
+        </div>
+
+        <p style="margin:0 0 18px 0;">That distinction matters. Logging every Bash call does not tell me whether a long reasoning loop just consumed another few dollars. Blocking <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">rm -rf</code> is useful, but it does nothing if my main failure mode is runaway model usage.</p>
+
+        <h2 style="margin:34px 0 12px 0;font-size:1.5rem;">What I use for cost governance instead</h2>
+        <p style="margin:0 0 18px 0;">agent-bill-guard solves the missing part by sitting between Claude Code and the Anthropic API as a local proxy. Because it sees every API request and response, it can do the things hooks cannot:</p>
+
+        <ul style="margin:0 0 18px 22px;padding:0;">
+          <li style="margin:0 0 8px 0;">track cumulative token cost for the session</li>
+          <li style="margin:0 0 8px 0;">show real-time cost in the terminal</li>
+          <li style="margin:0 0 8px 0;">write an append-only <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">ledger.jsonl</code></li>
+          <li style="margin:0 0 8px 0;">block new API requests once a budget cap is hit</li>
+        </ul>
+
+        <p style="margin:0 0 18px 0;">That is cost governance, not behavioral governance. It answers a different question: not “what did the agent try to do?” but “how much model spend did this session accumulate, and should the next request be allowed?”</p>
+
+        <h2 style="margin:34px 0 12px 0;font-size:1.5rem;">Running hooks and agent-bill-guard together</h2>
+        <p style="margin:0 0 14px 0;">This is the setup I actually want:</p>
+
+        <ul style="margin:0 0 18px 22px;padding:0;">
+          <li style="margin:0 0 8px 0;">Claude Code hooks for file, command, and tool governance</li>
+          <li style="margin:0 0 8px 0;">agent-bill-guard for API spend tracking and budget enforcement</li>
+        </ul>
+
+        <p style="margin:0 0 14px 0;">Start the local proxy first:</p>
+
+        <pre style="margin:0 0 22px 0;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>agent-bill-guard --listen 127.0.0.1:8787 --budget-usd 10</code></pre>
+
+        <p style="margin:0 0 14px 0;">Then point Claude Code at it with <code style="background:#0d1117;padding:2px 6px;border-radius:6px;border:1px solid #2a2d3a;">ANTHROPIC_BASE_URL</code>:</p>
+
+        <pre style="margin:0 0 22px 0;padding:18px;background:#0d1117;color:#e1e4f0;border:1px solid #2a2d3a;border-radius:14px;overflow:auto;"><code>export ANTHROPIC_BASE_URL=http://127.0.0.1:8787
+claude</code></pre>
+
+        <p style="margin:0 0 18px 0;">That is the trick. Claude Code still behaves normally, your hooks still fire, but the API traffic now goes through a local process that can meter and enforce spend. When the session hits the configured cap, agent-bill-guard blocks the next request before more money is spent.</p>
+
+        <div style="margin:0 0 22px 0;padding:16px 18px;background:rgba(61,220,132,0.08);border:1px solid rgba(61,220,132,0.35);border-radius:14px;">
+          <p style="margin:0;color:#b7f3d0;"><strong style="color:#3ddc84;">The split is clean:</strong> hooks handle behavioral governance, agent-bill-guard handles cost governance.</p>
+        </div>
+
+        <h2 style="margin:34px 0 12px 0;font-size:1.5rem;">Why I prefer the split</h2>
+        <p style="margin:0 0 18px 0;">I would rather keep these concerns separate than force one system to do both badly. Hooks are a good fit for “don’t let the agent run this command.” A proxy is a good fit for “don’t let the session exceed this budget.” Mixing those concepts usually produces partial visibility and awkward policy.</p>
+
+        <p style="margin:0 0 18px 0;">There are limits, of course. Hooks still matter because cost control does not tell me whether the agent touched a sensitive file. And a proxy still matters because command logs do not tell me what the Anthropic invoice will look like. I need both views.</p>
+
+        <p style="margin:0;">If you already rely on Claude Code hooks, I would not replace them. I would keep them, then add agent-bill-guard in front of the API. That gives you two separate controls that line up with two separate risks: agent behavior and API spend.</p>
+      </article>
+    </main>
+
+    <footer style="padding:18px 4px 8px 4px;color:#8b8fa8;font-size:0.95rem;">
+      <p style="margin:0;">Built for developers using Claude Code hooks who also want a hard view of session spend.</p>
+    </footer>
+  </div>
+</body>
+</html>
