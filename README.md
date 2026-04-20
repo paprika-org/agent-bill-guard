@@ -187,4 +187,6 @@ I was running Claude Code on a feature branch and a context-window loop burned $
 
 ---
 
+**[Landing page](https://paprika-org.github.io/agent-bill-guard/)** · **[Blog: How a $47 runaway session led to this tool](https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html)**
+
 *Built by [paprika-org](https://github.com/paprika-org). MIT license.*
