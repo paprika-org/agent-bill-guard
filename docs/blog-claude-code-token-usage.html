@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Token Usage: Track Sessions Live with agent-bill-guard</title>
+  <meta name="description" content="Claude Code token usage is hard to see while a session is running. This post explains how agent-bill-guard tracks tokens and estimated cost live with a tiny local Python proxy.">
+  <meta name="keywords" content="claude code token usage, claude code tokens, claude code cost tracking, anthropic token usage, agent-bill-guard, claude code budget">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html">
+</head>
+<body style="margin:0;background:#0f1117;color:#e1e4f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;">
+  <div style="max-width:760px;margin:0 auto;padding:32px 20px 64px;">
+    <a href="/" style="display:inline-block;margin-bottom:24px;color:#8b8fa8;text-decoration:none;font-size:0.95rem;">&larr; agent-bill-guard</a>
+    <article style="max-width:860px;margin:0 auto;color:#e1e4f0;font-size:1.05rem;">
+      <h1 style="font-size:2.4rem;line-height:1.15;margin:0 0 16px;color:#e1e4f0;font-weight:800;">Claude Code Token Usage: How to See Tokens During a Session</h1>
+      <p style="margin:0 0 24px;color:#c0c4d8;font-size:1.1rem;">If you are trying to understand <span style="color:#f0a500;">Claude Code token usage</span>, the frustrating part is simple: Claude Code does not really show you what a session is costing while it is happening. You feel it later when the bill lands. That is fine for small experiments, but it is not fine when you are debugging agentic loops, running long sessions, or trying to stay inside a hard budget.</p>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">That gap is why I built <span style="color:#f0a500;">agent-bill-guard</span>. It is a tiny local Python proxy, stdlib only, that sits between Claude Code and the Anthropic API. Instead of waiting until after the fact, you get a running token counter and estimated cost in your terminal as requests happen. It can also enforce a hard cap, which is useful when you want a session to stop before it drifts into runaway usage.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.25;margin:32px 0 12px;color:#e1e4f0;">Why tokens per session matters</h2>
+      <p style="margin:0 0 20px;color:#e1e4f0;">Per-session token visibility matters for a few very practical reasons. First, it helps when debugging long agentic loops. If a coding session keeps spiraling, you want to know whether it is burning a few thousand tokens or a few hundred thousand. Second, it lets you compare approaches. A prompt strategy that feels slightly better is not automatically better if it costs 3x more tokens. Third, a lot of people are working inside free-tier limits, client budgets, or internal project caps. In those cases, “we will find out later” is not an acceptable monitoring strategy.</p>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">What you usually want is a simple live readout: how many tokens this session has consumed so far, what that roughly means in dollars, and whether you are close to a limit you actually care about.</p>
+
+      <pre style="background:#0d1117;border:1px solid #2a2d3a;padding:16px 20px;border-radius:10px;overflow-x:auto;color:#e1e4f0;font-size:0.97rem;line-height:1.6;margin:0 0 24px;"><code>[agent-bill-guard] tokens: 23,841 / 100,000 | est. $0.71
+[agent-bill-guard] tokens: 31,422 / 100,000 | est. $0.94
+[agent-bill-guard] tokens: 48,905 / 100,000 | est. $1.47
+[agent-bill-guard] tokens: 99,188 / 100,000 | est. $2.98
+[agent-bill-guard] cap reached, blocking further requests</code></pre>
+
+      <h2 style="font-size:1.5rem;line-height:1.25;margin:32px 0 12px;color:#e1e4f0;">Why Claude Code hooks are not enough</h2>
+      <p style="margin:0 0 20px;color:#e1e4f0;">A reasonable first thought is: can this be done with Claude Code hooks? Not really, at least not for actual token accounting. Hooks like <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;color:#e1e4f0;">PreToolUse</code> and <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;color:#e1e4f0;">PostToolUse</code> tell you when tool calls happen. That can be useful for logging workflow events, but it does not surface token counts from the model response. Tool hooks are about tool execution, not the raw API usage payload.</p>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">So if your goal is true Claude Code token usage tracking, hooks alone do not solve it. They do not give you the thing you actually need: the <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;color:#e1e4f0;">usage.input_tokens</code> and <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;color:#e1e4f0;">usage.output_tokens</code> values returned by the Anthropic API.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.25;margin:32px 0 12px;color:#e1e4f0;">Why the proxy approach works</h2>
+      <p style="margin:0 0 20px;color:#e1e4f0;">The proxy approach is more blunt, but it works because it sits on the actual request path. Claude Code sends requests to the proxy, the proxy forwards them to Anthropic, and then the proxy reads the raw response JSON before passing it back. That means it can inspect the usage fields directly and keep a running total for the current session.</p>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">In practice, that gives you something close to what Claude Code should arguably expose natively, but currently does not: live token accounting and an optional hard stop. It is not a built-in solution. It is a local proxy. That means it is one extra layer in the stack, and it is only as accurate as the API usage data it sees. But for day-to-day monitoring, that is exactly the point.</p>
+
+      <p style="margin:0 0 16px;color:#e1e4f0;">The core logic is straightforward. After receiving the API response, the proxy reads the usage object and adds input and output tokens to the session total:</p>
+
+      <pre style="background:#0d1117;border:1px solid #2a2d3a;padding:16px 20px;border-radius:10px;overflow-x:auto;color:#e1e4f0;font-size:0.97rem;line-height:1.6;margin:0 0 24px;"><code>data = json.loads(response_body.decode("utf-8"))
+
+usage = data.get("usage", {})
+input_tokens = int(usage.get("input_tokens", 0))
+output_tokens = int(usage.get("output_tokens", 0))
+
+request_tokens = input_tokens + output_tokens
+session_tokens += request_tokens
+
+print(
+    f"[agent-bill-guard] tokens: {session_tokens:,} / {cap:,} | est. ${estimated_cost:.2f}"
+)</code></pre>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">That is the whole idea. No SDK magic, no external dependency chain, no guessing based on prompts or tool activity. Just read the usage numbers from the Anthropic response and track them live.</p>
+
+      <h2 style="font-size:1.5rem;line-height:1.25;margin:32px 0 12px;color:#e1e4f0;">A practical fix for a practical problem</h2>
+      <p style="margin:0 0 20px;color:#e1e4f0;">If you only use Claude Code occasionally, maybe delayed billing visibility is tolerable. If you use it heavily, it becomes a blind spot. That is especially true when you are iterating on prompts, testing agent behavior, or handing sessions to teammates who need guardrails. In those cases, seeing token usage during the session is materially better than seeing it later in an invoice.</p>
+
+      <p style="margin:0 0 20px;color:#e1e4f0;">That is what <span style="color:#f0a500;">agent-bill-guard</span> is for. It does one narrow job: expose live token and cost information for Claude Code sessions, and optionally stop usage at a hard cap. It is not pretending to be more than that.</p>
+
+      <hr style="border:none;border-top:1px solid #2a2d3a;margin:40px 0;">
+      <p style="margin:0;color:#e1e4f0;">To try it locally, run <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;color:#e1e4f0;">git clone https://github.com/paprika-org/agent-bill-guard &amp;&amp; cd agent-bill-guard &amp;&amp; python proxy.py --cap 100000</code>. The project is here: <a href="https://github.com/paprika-org/agent-bill-guard" style="color:#f0a500;text-decoration:none;">agent-bill-guard on GitHub</a>.</p>
+    </article>
+  </div>
+</body>
+</html>
