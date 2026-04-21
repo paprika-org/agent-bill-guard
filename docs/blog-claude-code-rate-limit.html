@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code Rate Limits: What They Are and How to Stay Under Them</title>
+  <meta name="description" content="Claude Code sessions can hit Anthropic API rate limits unexpectedly, especially in agentic loops. Here is how to track token usage live and avoid hitting caps." />
+  <meta name="keywords" content="claude code rate limit, claude code api limits, anthropic rate limit, claude code tokens per minute, agent-bill-guard" />
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html" />
+</head>
+<body style="margin:0;background:#0f1117;color:#e1e4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <main style="max-width:760px;margin:0 auto;padding:32px 20px 64px;line-height:1.7;">
+    <a href="/" style="display:inline-block;margin-bottom:24px;color:#8b8fa8;text-decoration:none;font-size:0.95rem;">&larr; agent-bill-guard</a>
+
+    <h1 style="margin:0 0 12px;color:#e1e4f0;font-size:2.4rem;font-weight:800;line-height:1.15;">Claude Code Rate Limits: What They Are and How to Stay Under Them</h1>
+    <p style="margin:0 0 24px;color:#c0c4d8;font-size:1.08rem;">I built <span style="color:#f0a500;">agent-bill-guard</span> because I got tired of Claude Code sessions falling over in the middle of useful work and leaving me guessing whether I hit a token cap, an RPM wall, or just burned through context faster than I realized.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">What Claude Code rate limits actually are</h2>
+    <p style="margin:0 0 16px;">When people search for <em>Claude Code rate limit</em>, they usually mean Anthropic API limits showing up while they are using Claude Code as an agentic coding tool. Under the hood, the important constraints are Anthropic account limits. In the official docs, Anthropic measures Messages API limits with requests per minute, input tokens per minute, and output tokens per minute, and those limits depend on your usage tier. Higher account tiers get more room. There are also longer-window budget controls tied to the account tier, so your usable headroom is not just one number.</p>
+    <p style="margin:0 0 16px;">That distinction matters. A lot of developers expect one simple cap, like “I can send X prompts today.” In practice it is more annoying than that. You can be fine on request count and still get clipped on tokens. You can stay under token throughput for a while and still run into the broader account budget window later. Anthropic also notes that short bursts can trip a per-minute limit even if your average usage looks reasonable over a longer period.</p>
+    <p style="margin:0 0 16px;">So the short version is this: Claude Code is only as free-running as the Anthropic limits behind it. If your tier is smaller, your margin for experiments is smaller too.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">Why developers hit limits earlier than they expect</h2>
+    <p style="margin:0 0 16px;">The surprise comes from how agentic workflows spend tokens. A single API call is easy to reason about. A coding session with tool use is not. The agent loops, revises a plan, reads files, calls tools, summarizes output, asks follow-up questions, and keeps hauling the session history forward. Then you add subagents or parallel work and suddenly a session that felt “small” turns into a steady token furnace.</p>
+    <p style="margin:0 0 16px;">I ran into this the annoying way: the terminal looked calm, the model wasn’t writing a novel, and then I still got rate-limited because three or four ordinary-looking turns were each dragging a much larger context than I had in my head. Another one that stings is when an agent gets stuck in a dumb loop, half-helpful and half-confused, and quietly chews through tokens while you think it is “just trying one more thing.”</p>
+    <p style="margin:0 0 16px;">Three things compound fast:</p>
+    <p style="margin:0 0 16px;"><code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">agentic loops</code> multiply requests, <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">parallel subagents</code> multiply concurrent usage, and <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">large context windows</code> make every turn heavier than the last. None of that feels dramatic in the moment. The meter still moves.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">Why Claude Code sessions behave differently from one-off API calls</h2>
+    <p style="margin:0 0 16px;">This is the part I think people underestimate. A one-off API call has a bounded prompt, a bounded response, and you can usually eyeball the cost. A Claude Code session is cumulative. Session history grows. Tool results get folded back in. The agent keeps carrying prior instructions, previous outputs, and local context forward unless something trims it.</p>
+    <p style="margin:0 0 16px;">That means the input side gets more expensive over time even if your latest message is short. You type one sentence like “try another fix,” but the model may be receiving that sentence plus a bunch of prior transcript, tool output, code context, and planning state. So the real token load is not what you just typed. It is the entire session baggage attached to it.</p>
+    <p style="margin:0 0 16px;">That is why rate limit pain inside Claude Code feels weirdly sudden. The first few turns are cheap. Later turns are not. You hit a point where every extra turn costs more input tokens than your intuition says it should, and then a limit error shows up right when the session was finally getting somewhere. Great.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">What <span style="color:#f0a500;">agent-bill-guard</span> does about it</h2>
+    <p style="margin:0 0 16px;">I built <span style="color:#f0a500;">agent-bill-guard</span> as a local Python proxy for exactly this problem. It is stdlib only, sits in front of the API traffic, and tracks token usage per session as responses come back. The immediate value is visibility. Instead of waiting for Anthropic to reject a request, you can see a session climbing toward the point where trouble is likely.</p>
+    <p style="margin:0 0 16px;">That matters more than it sounds. Once you can see live <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">input_tokens</code> and <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">output_tokens</code> accumulating by session, you can make deliberate choices: kill a runaway loop, start a fresh session, lower the cap, stop parallel branches, or just avoid handing the model another giant wall of context.</p>
+    <p style="margin:0 0 16px;">The second part is enforcement. <span style="color:#f0a500;">agent-bill-guard</span> can apply hard caps to a session so a bad loop or overly ambitious agent run does not keep burning tokens until you slam into rate limits or spend more than you intended. It is not fancy. That is on purpose. I wanted a local guardrail, not another service to manage.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">Tiny example: intercepting token usage from responses</h2>
+    <p style="margin:0 0 16px;">The core mechanic is simple. Anthropic responses include usage data. The proxy reads it, updates per-session counters, and decides whether the session is still within the cap.</p>
+
+    <pre style="background:#0d1117;border:1px solid #2a2d3a;border-radius:10px;padding:16px 20px;overflow:auto;color:#e1e4f0;"><code>data = json.loads(response_body)
+
+usage = data.get("usage", {})
+input_tokens = usage.get("input_tokens", 0)
+output_tokens = usage.get("output_tokens", 0)
+
+session_totals[session_id]["input"] += input_tokens
+session_totals[session_id]["output"] += output_tokens
+
+if session_totals[session_id]["input"] + session_totals[session_id]["output"] &gt; cap:
+    raise RuntimeError(f"Session cap exceeded for {session_id}")</code></pre>
+
+    <p style="margin:16px 0 16px;">That is basically the whole idea. Watch the live token counters. Keep a running total per session. Fail closed if the session crosses a threshold you chose on purpose.</p>
+
+    <h2 style="font-size:1.5rem;color:#e1e4f0;margin:32px 0 12px;">Honest limitations</h2>
+    <p style="margin:0 0 16px;"><span style="color:#f0a500;">agent-bill-guard</span> does not prevent Anthropic rate limit errors directly. Anthropic still makes the server-side decision. If their backend says you exceeded RPM or token throughput, that is their call, not mine. The proxy cannot override it.</p>
+    <p style="margin:0 0 16px;">What it does give you is visibility and control before you get there. You can see which session is getting heavy. You can spot a runaway agent before it eats the rest of your budget. You can keep sessions under a hard cap so you are less likely to blunder into limits accidentally. That is a different promise, and I think it is the honest one.</p>
+    <p style="margin:0 0 16px;">If you want the official Anthropic side of the story, read their <a href="https://docs.anthropic.com/en/api/rate-limits" style="color:#f0a500;text-decoration:none;">rate limit docs</a>. If you want fewer mystery failures in long Claude Code sessions, put a meter in front of the session and make the token burn visible.</p>
+
+    <hr style="border:none;border-top:1px solid #2a2d3a;margin:40px 0 24px;" />
+
+    <p style="margin:0;color:#c0c4d8;">Try it locally: <code style="background:#0d1117;border:1px solid #2a2d3a;border-radius:6px;padding:2px 6px;">git clone https://github.com/paprika-org/agent-bill-guard &amp;&amp; cd agent-bill-guard &amp;&amp; python proxy.py --cap 100000</code> — project at <a href="https://github.com/paprika-org/agent-bill-guard" style="color:#f0a500;text-decoration:none;">agent-bill-guard on GitHub</a></p>
+  </main>
+</body>
+</html>
