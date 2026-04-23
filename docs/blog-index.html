@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — agent-bill-guard</title>
+<meta name="description" content="Technical articles on Claude Code cost management, API spend tracking, token budgets, and billing controls for AI coding agents.">
+<link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-index.html">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e1e4f0;
+    --muted: #8b8fa8;
+    --accent: #f0a500;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 16px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: 2rem; }
+  header a.brand { color: var(--text); font-weight: 600; font-size: 1rem; }
+  header a { color: var(--muted); font-size: 0.9rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 3rem 2rem; }
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); margin-bottom: 2.5rem; }
+  ul.posts { list-style: none; }
+  ul.posts li.post { border-bottom: 1px solid var(--border); padding: 1.25rem 0; }
+  ul.posts li.post:last-child { border-bottom: none; }
+  ul.posts li.post a { font-size: 1rem; font-weight: 500; color: var(--text); }
+  ul.posts li.post a:hover { color: var(--accent); }
+  footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="index.html">agent-bill-guard</a>
+  <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+</header>
+<main>
+  <h1>Blog</h1>
+  <p class="subtitle">Claude Code cost management, API spend tracking, and token budget controls.</p>
+  <ul class="posts">
+    <li class="post"><a href="blog-claude-code-cost.html">My Claude Code session burned $47 in 12 minutes (and how I stopped it)</a></li>
+    <li class="post"><a href="blog-claude-code-hooks.html">Claude Code Hooks: What They Can (and Can't) Do for Cost Control</a></li>
+    <li class="post"><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits: What They Are and How to Stay Under Them</a></li>
+    <li class="post"><a href="blog-claude-code-token-usage.html">Claude Code Token Usage: Track Sessions Live with agent-bill-guard</a></li>
+    <li class="post"><a href="blog-claude-code-budget.html">Setting a hard spending limit for Claude Code sessions</a></li>
+  </ul>
+  <footer>
+    <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>
+  </footer>
+</main>
+</body>
+</html>
