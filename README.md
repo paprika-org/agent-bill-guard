@@ -1,63 +1,63 @@
 # agent-bill-guard
 
-**Hard budget limits for AI coding agent sessions.**
+One Claude Code or Codex CLI session can burn $40 before you notice.
+Monthly org limits do not stop a single runaway session mid-run.
+This local proxy blocks the next request when the session hits your cap.
 
-A lightweight local proxy that sits in front of Claude Code, Codex CLI, and other AI coding agents. When a session hits your spend cap, the next request is blocked — not warned about after the fact.
 
+
+```text
+before
+[claude/codex] -------------------------------> [provider API]
+runaway session keeps spending until you notice
+
+after
+[claude/codex] -> [agent-bill-guard :8788] -> [provider API]
+                     warn at $4.00
+                     block at $5.00/session
+                     write ledger.jsonl
 ```
-[Claude Code] → [agent-bill-guard :8788] → [Anthropic API]
-                      ↓
-               blocks at $5.00/session
-               warns at $4.00
-               writes ledger.jsonl
+
+```text
+$ ANTHROPIC_BASE_URL=http://127.0.0.1:8788 ABG_SESSION_ID=feature-auth-rewrite claude
+[abg] ALLOW   session=feature-auth-rewrite cost=$0.008421 session_total=$4.12
+[abg] WARN    session=feature-auth-rewrite cost=$0.006200 session_total=$4.73
+[abg] BLOCKED session=feature-auth-rewrite | Session budget exhausted: $5.14 >= $5.00
 ```
 
-No gateway setup. No vendor account. No dashboard. Just a Python script you run locally.
+```json
+{"error":"session budget exhausted","session":"feature-auth-rewrite"}
+```
 
----
-
-## The problem
-
-Workspace spend limits on Claude.ai and the Anthropic console apply monthly, at the org level. They don't stop one developer from burning $40 in a runaway session before anyone notices. They don't give you per-session attribution. They don't let you set different caps for different agents.
-
-`agent-bill-guard` fills that gap: **per-session circuit breaker, local, zero infrastructure**.
-
----
-
-## Quick start
+## Install
 
 ```bash
-# Clone
-git clone https://github.com/paprika-org/agent-bill-guard
-cd agent-bill-guard
-
-# Copy config
-cp agentbillguard.yaml.example agentbillguard.yaml
-# Edit: set session_budget_usd and daily_budget_usd
-
-# Start proxy
-python abg.py proxy
-# [abg] agent-bill-guard proxy listening on http://127.0.0.1:8788
-# [abg] session budget: $5.00  daily budget: $20.00
+git clone https://github.com/paprika-org/agent-bill-guard && cd agent-bill-guard && cp agentbillguard.yaml.example agentbillguard.yaml && python abg.py proxy
 ```
 
-Point Claude Code at the proxy:
-
 ```bash
-# In a new terminal, set Claude Code to route through proxy
 ANTHROPIC_BASE_URL=http://127.0.0.1:8788 claude
+```
 
-# Or for Codex CLI
+```bash
 OPENAI_BASE_URL=http://127.0.0.1:8788 codex
 ```
 
-Tag sessions to get per-session attribution:
-
 ```bash
-# Export session ID for this coding session
 export ABG_SESSION_ID=feature-auth-rewrite
+```
 
-# Pass it through to the proxy
+Use `ABG_SESSION_ID` for per-session attribution and per-session caps.
+
+## ⭐ Star this repo
+
+If this saved you from a runaway session, star it — helps others find it.
+
+GitHub: https://github.com/paprika-org/agent-bill-guard
+
+Local only. No gateway. No dashboard. No vendor account.
+
+---
 ANTHROPIC_BASE_URL=http://127.0.0.1:8788 \
   ABG_SESSION_ID=$ABG_SESSION_ID \
   claude
