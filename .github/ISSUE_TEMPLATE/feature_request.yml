@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest a new rule, integration, or capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        What would make this tool more useful for you?
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you solving?
+      placeholder: When running agents in CI, I can't...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      placeholder: A rule that blocks...
+    validations:
+      required: true
+  - type: dropdown
+    id: use-case
+    attributes:
+      label: Primary use case
+      options:
+        - Claude Code on a developer machine
+        - Claude Code in CI/CD
+        - Codex/API agents in production
+        - Multi-agent orchestration
+        - Other
+    validations:
+      required: true
