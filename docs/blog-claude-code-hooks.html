@@ -19,7 +19,7 @@
   "description": "A developer-focused guide to Claude Code hooks, where they help, where they fall short for API spend tracking, and how to pair them with agent-bill-guard for budget control.",
   "url": "https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html",
   "datePublished": "2026-04-20",
-  "dateModified": "2026-04-24",
+  "dateModified": "2026-05-05",
   "publisher": {
     "@type": "Organization",
     "name": "agent-bill-guard"
@@ -27,6 +27,63 @@
 }
 </script>
   <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+    <style>
+      .faq { margin-top: 2.5em; border-top: 1px solid var(--border); padding-top: 1.5em; }
+      .faq h2 { font-size: 1.15rem; margin-bottom: 1em; }
+      .faq-list { margin: 0; padding: 0; }
+      .faq-item { margin-bottom: 1.2em; }
+      .faq-item dt { font-weight: 700; color: var(--accent); margin-bottom: 0.3em; }
+      .faq-item dd { margin: 0; color: var(--muted); line-height: 1.65; }
+    </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What are Claude Code hooks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Claude Code hooks are user-defined shell commands that run automatically at specific points in Claude Code's lifecycle, such as before a tool runs, after an edit, or when a session starts. They give you deterministic control over actions like formatting, validation, notifications, and guardrails. In practice, Claude Code hooks are useful when you want reliable automation instead of hoping the model remembers to do a step."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I set up Claude Code hooks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "To use Claude Code hooks, add a `hooks` section to your Claude settings file and map an event like `PreToolUse` or `PostToolUse` to a shell command. A common setup is running a formatter after `Write` or `Edit`, or blocking risky changes before they happen. Start with one simple hook first, test it on a non-critical file, and then expand your matchers once the behavior is stable."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why are my Claude Code hooks not working?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Claude Code hooks usually fail because the event name, matcher, file path, or command output is wrong. For example, a hook may not fire if the matcher does not match the actual tool name, or the script exits with the wrong status code. If you're fixing Claude Code hooks, check the exact hook event, confirm the script path is valid, and review whether the command should return success, a blocking error, or structured JSON."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What can I use instead of Claude Code hooks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Alternatives to Claude Code hooks include external CI checks, Git pre-commit hooks, editor automation, and repo-level scripts that run outside the Claude workflow. Those options can handle formatting, linting, or policy enforcement, but they do not react inside Claude Code at the same lifecycle points. If you need in-session automation and tool-aware guardrails, Claude Code hooks are usually the more direct fit."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a practical tip for using Claude Code hooks safely?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A practical Claude Code hooks tip is to keep each hook narrow, fast, and easy to debug. Instead of one large script that handles everything, use small commands for one job such as formatting, logging, or blocking sensitive file edits. This makes Claude Code hooks easier to maintain and reduces the chance that a slow or noisy hook interrupts normal coding flow."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body style="margin:0;background:#0f1117;color:#e1e4f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;">
   <div style="max-width:980px;margin:0 auto;padding:24px;">
@@ -163,6 +220,32 @@ claude</code></pre>
         <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code spending limit</a></li>
       </ul>
     </div>
+    
+    <section class="faq" aria-label="Frequently Asked Questions">
+      <h2>Frequently Asked Questions</h2>
+      <dl class="faq-list">
+    <div class="faq-item">
+      <dt>What are Claude Code hooks?</dt>
+      <dd>Claude Code hooks are user-defined shell commands that run automatically at specific points in Claude Code's lifecycle, such as before a tool runs, after an edit, or when a session starts. They give you deterministic control over actions like formatting, validation, notifications, and guardrails. In practice, Claude Code hooks are useful when you want reliable automation instead of hoping the model remembers to do a step.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>How do I set up Claude Code hooks?</dt>
+      <dd>To use Claude Code hooks, add a `hooks` section to your Claude settings file and map an event like `PreToolUse` or `PostToolUse` to a shell command. A common setup is running a formatter after `Write` or `Edit`, or blocking risky changes before they happen. Start with one simple hook first, test it on a non-critical file, and then expand your matchers once the behavior is stable.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>Why are my Claude Code hooks not working?</dt>
+      <dd>Claude Code hooks usually fail because the event name, matcher, file path, or command output is wrong. For example, a hook may not fire if the matcher does not match the actual tool name, or the script exits with the wrong status code. If you're fixing Claude Code hooks, check the exact hook event, confirm the script path is valid, and review whether the command should return success, a blocking error, or structured JSON.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>What can I use instead of Claude Code hooks?</dt>
+      <dd>Alternatives to Claude Code hooks include external CI checks, Git pre-commit hooks, editor automation, and repo-level scripts that run outside the Claude workflow. Those options can handle formatting, linting, or policy enforcement, but they do not react inside Claude Code at the same lifecycle points. If you need in-session automation and tool-aware guardrails, Claude Code hooks are usually the more direct fit.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>What is a practical tip for using Claude Code hooks safely?</dt>
+      <dd>A practical Claude Code hooks tip is to keep each hook narrow, fast, and easy to debug. Instead of one large script that handles everything, use small commands for one job such as formatting, logging, or blocking sensitive file edits. This makes Claude Code hooks easier to maintain and reduces the chance that a slow or noisy hook interrupts normal coding flow.</dd>
+    </div>
+      </dl>
+    </section>
     </article>
     </main>
 

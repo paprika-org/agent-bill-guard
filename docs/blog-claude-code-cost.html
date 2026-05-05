@@ -120,7 +120,7 @@
   "description": "A developer story about Claude Code cost, runaway sessions, and the local proxy I built to enforce hard budget limits before another billing surprise.",
   "url": "https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html",
   "datePublished": "2026-04-20",
-  "dateModified": "2026-04-24",
+  "dateModified": "2026-05-05",
   "publisher": {
     "@type": "Organization",
     "name": "agent-bill-guard"
@@ -128,6 +128,63 @@
 }
 </script>
   <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+    <style>
+      .faq { margin-top: 2.5em; border-top: 1px solid var(--border); padding-top: 1.5em; }
+      .faq h2 { font-size: 1.15rem; margin-bottom: 1em; }
+      .faq-list { margin: 0; padding: 0; }
+      .faq-item { margin-bottom: 1.2em; }
+      .faq-item dt { font-weight: 700; color: var(--accent); margin-bottom: 0.3em; }
+      .faq-item dd { margin: 0; color: var(--muted); line-height: 1.65; }
+    </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is Claude Code cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Claude Code cost usually refers to how much you spend when using Anthropic's coding assistant through API usage or a connected billing plan. In practice, the total Claude Code cost depends on the model, token usage, session length, and how often the tool reads or rewrites large files. People searching this term often want to understand why bills rise during agentic coding workflows."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why is my Claude Code cost so high?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Claude Code cost can get high when the assistant repeatedly scans large codebases, retries tasks, or uses more expensive models for long sessions. Costs also rise when prompts include big files, logs, or chat history on every turn. If you are seeing unexpected Claude Code billing, check token-heavy workflows first."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I reduce Claude Code cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "To reduce Claude Code cost, use smaller models for routine tasks and reserve stronger models for debugging or architecture work. Keep prompts shorter, limit unnecessary file context, and break big jobs into smaller steps so the agent does less repeated work. Usage tracking and budget alerts also help catch expensive patterns early."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the best alternatives to Claude Code for lower cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Alternatives to Claude Code cost-sensitive teams often compare include GitHub Copilot, OpenAI-based coding tools, and other AI coding agents with clearer usage controls. The best option depends on whether you need lower per-task pricing, better rate limits, or stronger code review features. Comparing total cost per completed task is more useful than comparing headline pricing alone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a practical way to keep Claude Code cost under control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A practical tip is to set a hard session budget before starting and review which prompts trigger the biggest token spikes. For example, avoid pasting entire repositories or long terminal logs when only one file or error matters. This simple habit can lower Claude Code cost without slowing down day-to-day development."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
   <main class="container">
@@ -226,6 +283,32 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8788 claude</code></pre>
         <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code spending limit</a></li>
       </ul>
     </div>
+    
+    <section class="faq" aria-label="Frequently Asked Questions">
+      <h2>Frequently Asked Questions</h2>
+      <dl class="faq-list">
+    <div class="faq-item">
+      <dt>What is Claude Code cost?</dt>
+      <dd>Claude Code cost usually refers to how much you spend when using Anthropic's coding assistant through API usage or a connected billing plan. In practice, the total Claude Code cost depends on the model, token usage, session length, and how often the tool reads or rewrites large files. People searching this term often want to understand why bills rise during agentic coding workflows.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>Why is my Claude Code cost so high?</dt>
+      <dd>Claude Code cost can get high when the assistant repeatedly scans large codebases, retries tasks, or uses more expensive models for long sessions. Costs also rise when prompts include big files, logs, or chat history on every turn. If you are seeing unexpected Claude Code billing, check token-heavy workflows first.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>How do I reduce Claude Code cost?</dt>
+      <dd>To reduce Claude Code cost, use smaller models for routine tasks and reserve stronger models for debugging or architecture work. Keep prompts shorter, limit unnecessary file context, and break big jobs into smaller steps so the agent does less repeated work. Usage tracking and budget alerts also help catch expensive patterns early.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>What are the best alternatives to Claude Code for lower cost?</dt>
+      <dd>Alternatives to Claude Code cost-sensitive teams often compare include GitHub Copilot, OpenAI-based coding tools, and other AI coding agents with clearer usage controls. The best option depends on whether you need lower per-task pricing, better rate limits, or stronger code review features. Comparing total cost per completed task is more useful than comparing headline pricing alone.</dd>
+    </div>
+    <div class="faq-item">
+      <dt>What is a practical way to keep Claude Code cost under control?</dt>
+      <dd>A practical tip is to set a hard session budget before starting and review which prompts trigger the biggest token spikes. For example, avoid pasting entire repositories or long terminal logs when only one file or error matters. This simple habit can lower Claude Code cost without slowing down day-to-day development.</dd>
+    </div>
+      </dl>
+    </section>
     </article>
   </main>
 </body>
