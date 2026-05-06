@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>claude code api cost: practical ways to measure and control spend locally</title>
+  <meta name="description" content="A developer-focused guide to claude code api cost: how usage turns into spend, what to measure, where costs hide, and how to enforce local budget limits with agent-bill-guard.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-api-cost.html">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --links: #7dd3fc;
+      --accent: #f59e0b;
+      --borders: #24304d;
+      --code-bg: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    nav {
+      border-bottom: 1px solid var(--borders);
+      background: rgba(11,16,32,0.95);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+    }
+    .nav-inner, .container {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+    }
+    a { color: var(--links); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    main { padding: 32px 0 56px; }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--borders);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    h1, h2, h3 { line-height: 1.25; }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin: 0 0 16px;
+    }
+    h2 {
+      margin-top: 34px;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    h3 {
+      margin-top: 22px;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+    p, li { color: var(--text); }
+    .muted, .meta { color: var(--muted); }
+    .meta {
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .note {
+      border-left: 4px solid var(--accent);
+      background: rgba(245,158,11,0.08);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    pre, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--text);
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.93rem;
+    }
+    ul {
+      padding-left: 22px;
+    }
+    .cta {
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid var(--borders);
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"claude code api cost: practical ways to measure and control spend locally",
+    "description":"A developer-focused guide to claude code api cost: how usage turns into spend, what to measure, where costs hide, and how to enforce local budget limits with agent-bill-guard.",
+    "url":"https://paprika-org.github.io/agent-bill-guard/blog-claude-code-api-cost.html",
+    "datePublished":"2026-05-06",
+    "dateModified":"2026-05-06",
+    "publisher":{"@type":"Organization","name":"agent-bill-guard"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Does agent-bill-guard change Claude Code prompts or responses?",
+        "acceptedAnswer":{"@type":"Answer","text":"No. It acts as a local proxy that observes request and response traffic, reports token and cost data, and can stop requests when configured limits are exceeded."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can this give exact billing numbers from Anthropic invoices?",
+        "acceptedAnswer":{"@type":"Answer","text":"Not always exactly. It estimates spend from observed usage and pricing assumptions, which is useful for operational control, but final provider billing can differ because of pricing changes, rounding, or features not exposed in the request stream."}
+      },
+      {
+        "@type":"Question",
+        "name":"Why is claude code api cost hard to predict during long agent runs?",
+        "acceptedAnswer":{"@type":"Answer","text":"Because agent loops expand context over time, retry failed tool calls, and may issue many small follow-up requests. The total cost is often the sum of dozens of interactions rather than one large completion."}
+      },
+      {
+        "@type":"Question",
+        "name":"Does agent-bill-guard require external Python packages?",
+        "acceptedAnswer":{"@type":"Answer","text":"No. The project is stdlib-only and runs locally without external dependencies, which keeps setup simple and makes it easier to inspect or modify in restricted development environments."}
+      }
+    ]
+  }
+  </script>
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html">agent-bill-guard</a>
+      <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+    </div>
+  </nav>
+  <main class="container">
+    <article>
+      <h1>claude code api cost: practical ways to measure and control spend locally</h1>
+      <div class="meta">Published 2026-05-06</div>
+      <p>If you are trying to understand <strong>claude code api cost</strong>, the hard part is usually not the posted model price. The hard part is seeing what your agent is actually doing: how many requests it emits, how prompt context grows across turns, and when tool-heavy loops silently turn into real spend. For developers, cost control starts with observability close to the API boundary, not with rough mental math.</p>
+
+      <h2>Why claude code api cost is easy to underestimate</h2>
+      <p>Claude Code can look cheap in a short demo and expensive in a real repository. A single instruction often becomes a chain of calls: planning, file inspection, retries, tool invocation, and follow-up synthesis. Even when each request is small, cumulative token usage adds up quickly. The bigger issue is that cost is nonlinear once the conversation history grows, because later requests frequently include earlier context.</p>
+      <p>That means your best estimate of <strong>claude code api cost</strong> is not a spreadsheet with one prompt and one response. It is a per-request trace with input tokens, output tokens, tool activity, and a running total. Without that, you only notice problems after a session has already burned through budget.</p>
+
+      <h2>What to measure in practice</h2>
+      <p>For day-to-day engineering work, four metrics matter more than generic dashboard summaries:</p>
+      <ul>
+        <li>Input tokens per request, because large repo context is often the main cost driver.</li>
+        <li>Output tokens per request, because verbose model reasoning can dominate long runs.</li>
+        <li>Tool call count, because agents can repeatedly inspect files, run commands, or retry workflows.</li>
+        <li>Running session total, because developers need a stop signal before costs compound.</li>
+      </ul>
+      <p>A useful local tool should expose these numbers immediately in the terminal, next to the work being done. Waiting for delayed reporting defeats the purpose when the process can already be runaway.</p>
+      <div class="note">
+        The main operational question is not “what does the model cost?” but “what is this agent doing right now, and should it be allowed to continue?”
+      </div>
+
+      <h2>Using agent-bill-guard as a local cost boundary</h2>
+      <p><a href="https://github.com/paprika-org/agent-bill-guard">Agent Bill Guard</a> is a lightweight Python proxy that sits between Claude Code and the Anthropic API. It intercepts every request and response, tracks token usage and estimated spend, prints per-request breakdowns, and can enforce spend limits. The implementation is stdlib-only, which makes it easy to audit and run in minimal environments.</p>
+      <p>This is useful because it moves cost awareness from the billing console to the developer loop. Instead of checking usage after a session, you can see the cost profile as requests happen and cut off bad runs before they continue.</p>
+      <pre><code># clone and run locally
+git clone https://github.com/paprika-org/agent-bill-guard.git
+cd agent-bill-guard
+python3 agent_bill_guard.py --listen 127.0.0.1:8080 --upstream https://api.anthropic.com
+
+# example terminal output
+[req 12] model=claude input_tokens=18432 output_tokens=913 tool_calls=3
+[req 12] estimated_cost=$0.41 session_total=$2.87
+[limit] max_session_usd=3.00 exceeded by upcoming request
+[action] request blocked</code></pre>
+      <p>That kind of output is much more actionable than a generic “usage increased” alert. You can correlate a spike with a specific prompt, tool loop, or repository operation and then change the workflow immediately.</p>
+
+      <h2>Honest limitations and edge cases</h2>
+      <p>No proxy can make cost accounting perfect. If pricing changes upstream and your local assumptions are stale, your estimate will drift. Some features may also have billing behavior that is not fully visible from request payloads alone. So treat local numbers as operational estimates, not as a legal invoice substitute.</p>
+      <p>There is also a scope limit: agent-bill-guard helps with <strong>claude code api cost</strong> when traffic passes through the proxy. If another tool or teammate bypasses it and calls the API directly, those requests will not appear in your local totals. In multi-service systems, you still need provider-side reporting for complete reconciliation.</p>
+      <p>Finally, spend limits are only as useful as the thresholds you choose. If the cap is too high, it does not protect much. If it is too low, normal work gets interrupted. In practice, developers usually want a conservative session budget and a separate higher ceiling for explicit batch runs.</p>
+
+      <h2>Common mistakes</h2>
+      <p><strong>Assuming one prompt equals one billable event.</strong> Agent workflows often trigger many internal steps. If you do not inspect per-request traffic, you will underestimate cost and overestimate predictability.</p>
+      <p><strong>Using only monthly dashboards.</strong> Provider dashboards are useful for reporting, but they are too delayed for local control. By the time you notice a spike, the runaway loop has already happened.</p>
+      <p><strong>Forgetting context growth.</strong> A request that starts small can become expensive after repeated turns because the agent keeps sending larger accumulated context back to the model.</p>
+
+      <h2>Frequently Asked Questions</h2>
+      <h3>Does agent-bill-guard change Claude Code prompts or responses?</h3>
+      <p>No. It acts as a local proxy that observes request and response traffic, reports token and cost data, and can stop requests when configured limits are exceeded.</p>
+      <h3>Can this give exact billing numbers from Anthropic invoices?</h3>
+      <p>Not always exactly. It estimates spend from observed usage and pricing assumptions, which is useful for operational control, but final provider billing can differ because of pricing changes, rounding, or features not exposed in the request stream.</p>
+      <h3>Why is claude code api cost hard to predict during long agent runs?</h3>
+      <p>Because agent loops expand context over time, retry failed tool calls, and may issue many small follow-up requests. The total cost is often the sum of dozens of interactions rather than one large completion.</p>
+      <h3>Does agent-bill-guard require external Python packages?</h3>
+      <p>No. The project is stdlib-only and runs locally without external dependencies, which keeps setup simple and makes it easier to inspect or modify in restricted development environments.</p>
+
+      <p class="cta">If you want a concrete way to monitor and cap <strong>claude code api cost</strong> during development, inspect the source and try the proxy locally: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
+    </article>
+  </main>
+</body>
+</html>
