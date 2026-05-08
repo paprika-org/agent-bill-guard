@@ -100,6 +100,32 @@
       padding-top: 20px;
       border-top: 1px solid var(--borders);
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
   <script type="application/ld+json">
   {
@@ -209,7 +235,16 @@ python3 agent_bill_guard.py --listen 127.0.0.1:8080 --upstream https://api.anthr
       <p>No. The project is stdlib-only and runs locally without external dependencies, which keeps setup simple and makes it easier to inspect or modify in restricted development environments.</p>
 
       <p class="cta">If you want a concrete way to monitor and cap <strong>claude code api cost</strong> during development, inspect the source and try the proxy locally: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
-    </article>
+    
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-cost.html">My Claude Code session burned $47 in 12 minutes (and how I stopped it)</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+      <li><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits</a></li>
+        </ul>
+      </div>
+</article>
   </main>
 </body>
 </html>

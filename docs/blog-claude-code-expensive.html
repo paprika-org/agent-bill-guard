@@ -112,6 +112,32 @@
       font-size: 0.95rem;
       margin-top: 2rem;
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
   <script type="application/ld+json">
   {
@@ -239,7 +265,16 @@ python3 agent_bill_guard.py --listen 127.0.0.1:8000 --upstream api.anthropic.com
       <h3>Will spend limits prevent every billing surprise?</h3>
       <p>They reduce risk substantially, but they do not replace prompt discipline, smaller task scopes, and periodic review of agent behavior.</p>
 
-      <div class="cta">
+      
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-cost.html">My Claude Code session burned $47 in 12 minutes (and how I stopped it)</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+      <li><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits</a></li>
+        </ul>
+      </div>
+<div class="cta">
         <p>If you need a concrete way to inspect token usage, cost, and tool activity before another session runs away, read the code and try it locally: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
       </div>
 

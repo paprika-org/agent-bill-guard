@@ -140,6 +140,32 @@
     .muted{
       color:var(--muted);
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
   <script type="application/ld+json">
 {
@@ -287,7 +313,16 @@ claude</code></pre>
       <h3>Is a local proxy the only way to add a hard Claude Code spending limit today?</h3>
       <p>If you want hard enforcement, it is the most direct approach. Monitoring tools and dashboards can tell you what happened, but they do not reliably stop the next request. A proxy can, which is why it is a practical fit for a hard per-session limit.</p>
 
-      <div class="cta">
+      
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits</a></li>
+      <li><a href="blog-claude-code-cost.html">My Claude Code session burned $47 in 12 minutes (and how I stopped it)</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+        </ul>
+      </div>
+<div class="cta">
         <h2>Get started with agent-bill-guard</h2>
         <p>Install it locally, put it in front of Claude Code, and enforce a real per-session budget instead of relying on account-level reporting.</p>
         <pre><code>npm install -g github:paprika-org/agent-bill-guard</code></pre>
