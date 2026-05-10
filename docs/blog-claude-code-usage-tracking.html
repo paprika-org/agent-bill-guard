@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Usage Tracking with a Local Proxy That Measures Tokens, Cost, and Tool Calls</title>
+  <meta name="description" content="A practical guide to claude code usage tracking using agent-bill-guard, a local Python proxy that logs token usage, cost, and tool calls while enforcing spend limits.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-usage-tracking.html">
+  <style>
+    :root {
+      --body-bg: #0b1020;
+      --panel: #121a2f;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --links: #7dd3fc;
+      --accent: #f59e0b;
+      --borders: #24304d;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--body-bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a { color: var(--links); }
+    a:hover { color: var(--accent); }
+
+    nav {
+      border-bottom: 1px solid var(--borders);
+      background: rgba(11, 16, 32, 0.95);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-inner, .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 64px;
+    }
+
+    .brand {
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-links a {
+      margin-left: 18px;
+      text-decoration: none;
+    }
+
+    main {
+      padding: 40px 0 72px;
+    }
+
+    article {
+      background: var(--panel);
+      border: 1px solid var(--borders);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    h1, h2, h3 {
+      line-height: 1.25;
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      margin-top: 34px;
+      margin-bottom: 14px;
+      color: var(--accent);
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 22px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin: 0 0 16px;
+    }
+
+    .meta {
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--text);
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      padding: 18px;
+      overflow-x: auto;
+      margin: 18px 0 22px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94rem;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px;
+      background: rgba(245, 158, 11, 0.08);
+      border-radius: 8px;
+      margin: 18px 0;
+      color: var(--text);
+    }
+
+    .cta {
+      margin-top: 34px;
+      padding: 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"Claude Code Usage Tracking with a Local Proxy That Measures Tokens, Cost, and Tool Calls",
+    "description":"A practical guide to claude code usage tracking using agent-bill-guard, a local Python proxy that logs token usage, cost, and tool calls while enforcing spend limits.",
+    "url":"https://paprika-org.github.io/agent-bill-guard/blog-claude-code-usage-tracking.html",
+    "datePublished":"2026-05-10",
+    "dateModified":"2026-05-10",
+    "publisher":{"@type":"Organization","name":"agent-bill-guard"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Does this require modifying Claude Code itself?",
+        "acceptedAnswer":{"@type":"Answer","text":"No. agent-bill-guard runs as a local proxy between Claude Code and the Anthropic API, so the tracking layer lives outside the client."}
+      },
+      {
+        "@type":"Question",
+        "name":"What exactly can it track?",
+        "acceptedAnswer":{"@type":"Answer","text":"It tracks request and response token usage, estimated cost, and tool-call activity per interaction, then prints that data in real time to the terminal."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can it stop a runaway agent automatically?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. You can configure spend limits so the proxy blocks further requests after a budget threshold is reached."}
+      },
+      {
+        "@type":"Question",
+        "name":"What are the main limitations?",
+        "acceptedAnswer":{"@type":"Answer","text":"It only sees traffic that passes through the proxy, it depends on correct local configuration, and cost reporting is only as accurate as the model pricing assumptions in use."}
+      }
+    ]
+  }
+  </script>
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a class="brand" href="index.html">agent-bill-guard</a>
+      <div class="nav-links">
+        <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <article>
+        <h1>Claude Code Usage Tracking for Developers Who Need Real Numbers</h1>
+        <p class="meta">Published May 10, 2026</p>
+
+        <p>Claude code usage tracking matters as soon as agents start looping, retrying, or invoking tools more often than expected. If you are running Claude Code against a real API key, “it felt expensive” is not a useful debugging signal. You need request-level token counts, cost estimates, and enough visibility to tell whether the spend came from prompts, outputs, or tool churn. That is the problem <a href="https://github.com/paprika-org/agent-bill-guard">agent-bill-guard</a> is designed to solve.</p>
+
+        <h2>Why Claude Code Usage Tracking Becomes Necessary Fast</h2>
+        <p>Interactive coding agents are easy to underestimate. A short session can fan out into repeated model calls, long tool outputs, and large context windows. If your workflow includes filesystem scans, test runs, or iterative planning, total usage can climb before you notice. Basic API dashboards help later, but they do not tell you which local action triggered the spike.</p>
+        <p>For a developer, the useful unit is not “monthly bill.” It is “what happened on this request?” A tracking layer should answer three questions immediately: how many tokens were sent and received, what the estimated cost was, and whether tool calls are inflating the session. Claude code usage tracking is valuable because it turns cost into something debuggable, not just something finance sees afterward.</p>
+
+        <h2>How agent-bill-guard Works</h2>
+        <p>Agent Bill Guard is a local Python proxy that sits between Claude Code and the Anthropic API. Instead of patching the client, it intercepts request and response traffic, then prints usage data directly to your terminal. The implementation is intentionally simple: stdlib-only, no external dependencies, and local execution. That makes it easy to inspect, easy to run on a dev machine, and less likely to introduce packaging friction.</p>
+        <p>In practice, this architecture gives you a narrow control point. Every proxied request can be measured, summarized, and checked against a budget. The proxy can also enforce spend limits, which is the part many teams skip until they get burned. Observability is useful, but hard stops are what prevent an accidental overnight loop from turning into a real invoice problem.</p>
+
+        <pre><code>git clone https://github.com/paprika-org/agent-bill-guard.git
+cd agent-bill-guard
+
+# example: run the local proxy
+python3 agent_bill_guard.py
+
+# point Claude Code at the proxy endpoint, then watch live output like:
+[12:41:09] model=claude input_tokens=8421 output_tokens=611
+[12:41:09] tools=Read, Bash estimated_cost=$0.11
+[12:41:09] session_total=$1.84 limit=$5.00
+
+# when the limit is exceeded:
+[12:58:44] spend limit reached: blocking further upstream requests</code></pre>
+
+        <h2>What You Actually Learn From the Output</h2>
+        <p>The biggest benefit is attribution. If a request suddenly costs more than expected, you can correlate that jump with a tool-heavy prompt, a large pasted diff, or a noisy command output that got fed back into context. That is much more actionable than reading an aggregate bill the next day.</p>
+        <p>The second benefit is operational discipline. Once you can see per-request usage, prompt design changes become measurable. You can compare runs with and without verbose tool output, trim unnecessary context, or decide that a task belongs in a cheaper model path. Claude code usage tracking also helps when multiple developers share conventions: the proxy output makes hidden cost patterns visible during ordinary terminal work.</p>
+        <div class="note">
+          Honest limitation: cost numbers are only as good as the pricing assumptions and what the upstream API returns. Treat the proxy as strong operational telemetry, not a substitute for provider billing records.
+        </div>
+
+        <h2>Limits and Tradeoffs</h2>
+        <p>This approach is practical, but it is not magic. First, the proxy only sees traffic routed through it. If someone points Claude Code directly at the API, you lose visibility and budget enforcement. Second, token and cost reporting can lag behind provider-side changes if pricing shifts. Any tool that estimates cost must be kept aligned with the real rate card.</p>
+        <p>There is also a narrower product scope than a full observability platform, which is mostly a good thing. Agent Bill Guard is local and lightweight, not a hosted analytics system. That means less setup and fewer dependencies, but also fewer dashboards, historical slices, and team-level reporting features. For many developers that tradeoff is correct: local usage tracking with a budget stop is enough.</p>
+
+        <h2>Common Mistakes</h2>
+        <p>The first common mistake is assuming the proxy is active when the client is still hitting the upstream API directly. If you do not see live request logs, verify your endpoint configuration before trusting any “low usage” conclusion. Silent bypass is worse than noisy failure because it looks normal.</p>
+        <p>The second mistake is setting a spend limit without leaving headroom for normal tool-driven variance. A hard cap that is too low will interrupt legitimate sessions and train developers to disable the guard. Start with a threshold that catches runaway behavior, then tighten once you have baseline numbers for your workflow.</p>
+        <p>A third pitfall is ignoring tool output size. Developers often optimize prompts while leaving huge command results or file dumps in the loop. In many real sessions, that is where token growth comes from.</p>
+
+        <h2>Frequently Asked Questions</h2>
+        <h3>Does this require modifying Claude Code itself?</h3>
+        <p>No. agent-bill-guard runs as a local proxy between Claude Code and the Anthropic API, so the tracking layer lives outside the client.</p>
+
+        <h3>What exactly can it track?</h3>
+        <p>It tracks request and response token usage, estimated cost, and tool-call activity per interaction, then prints that data in real time to the terminal.</p>
+
+        <h3>Can it stop a runaway agent automatically?</h3>
+        <p>Yes. You can configure spend limits so the proxy blocks further requests after a budget threshold is reached.</p>
+
+        <h3>What are the main limitations?</h3>
+        <p>It only sees traffic that passes through the proxy, it depends on correct local configuration, and cost reporting is only as accurate as the model pricing assumptions in use.</p>
+
+        <h2>When This Is Worth Adding</h2>
+        <p>If you use Claude Code casually for short tasks, you might not need extra infrastructure. But once it becomes part of your daily workflow, claude code usage tracking pays for itself quickly. The combination of real-time request breakdowns and enforced limits is useful precisely because it is local, boring, and easy to verify. You can inspect the code, run it with standard Python, and keep it in front of you while you work.</p>
+        <p class="cta">If you want a minimal, inspectable way to measure usage and stop runaway spend, read the code and try it from the repository: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
