@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code Billing: Track Token Costs Locally with agent-bill-guard</title>
+  <meta name="description" content="A practical guide to Claude Code billing: how token costs accumulate, how to inspect usage locally, and how agent-bill-guard can enforce spend limits while you iterate.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --links: #7dd3fc;
+      --accent: #f59e0b;
+      --borders: #24304d;
+      --code-bg: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    a { color: var(--links); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 48px;
+    }
+    nav {
+      border-bottom: 1px solid var(--borders);
+      background: rgba(11, 16, 32, 0.92);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+    }
+    .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .nav-links {
+      display: flex;
+      gap: 18px;
+    }
+    article {
+      margin-top: 32px;
+      background: var(--panel);
+      border: 1px solid var(--borders);
+      border-radius: 14px;
+      padding: 32px;
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      margin-top: 0;
+    }
+    h1 {
+      font-size: 2.3rem;
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin-top: 34px;
+      font-size: 1.45rem;
+      color: var(--text);
+      border-top: 1px solid var(--borders);
+      padding-top: 24px;
+    }
+    h3 {
+      margin-top: 20px;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+    p, li {
+      color: var(--text);
+      margin: 12px 0;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+    .note {
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      background: rgba(245, 158, 11, 0.08);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--text);
+      padding: 16px;
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--borders);
+      font-size: 0.95rem;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .cta {
+      margin-top: 28px;
+      padding: 18px;
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      background: rgba(125, 211, 252, 0.05);
+    }
+    footer {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 18px;
+    }
+    @media (max-width: 640px) {
+      article { padding: 22px; }
+      h1 { font-size: 1.8rem; }
+      .nav-inner { padding: 14px 16px; }
+      .wrap { padding: 0 16px 36px; }
+    }
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"Claude Code Billing: Track Token Costs Locally with agent-bill-guard","description":"A practical guide to Claude Code billing: how token costs accumulate, how to inspect usage locally, and how agent-bill-guard can enforce spend limits while you iterate.","url":"https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html","datePublished":"2026-05-12","dateModified":"2026-05-12","publisher":{"@type":"Organization","name":"agent-bill-guard"}}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does agent-bill-guard change Claude Code prompts or responses?","acceptedAnswer":{"@type":"Answer","text":"No. It acts as a local proxy for request and response inspection. It tracks usage, cost, and tool calls, but it does not rewrite prompts or alter model output."}},{"@type":"Question","name":"Can it stop a runaway session automatically?","acceptedAnswer":{"@type":"Answer","text":"Yes. You can configure spend limits so requests are blocked once a threshold is reached, which is useful when an agent starts looping or making excessive tool calls."}},{"@type":"Question","name":"Is agent-bill-guard a hosted billing dashboard?","acceptedAnswer":{"@type":"Answer","text":"No. It runs locally, uses only the Python standard library, and prints per-request details directly in the terminal instead of sending usage data to a remote service."}},{"@type":"Question","name":"What does it not solve for Claude Code billing?","acceptedAnswer":{"@type":"Answer","text":"It does not replace Anthropic account billing, historical invoice reporting, or pricing policy changes. It helps with local visibility and guardrails during development sessions."}}]}
+  </script>
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a class="brand" href="index.html">agent-bill-guard</a>
+      <div class="nav-links">
+        <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <article>
+      <h1>Claude Code Billing: Track Token Costs Locally with agent-bill-guard</h1>
+      <div class="meta">Published May 12, 2026</div>
+
+      <p>Claude code billing gets expensive faster than many developers expect because long prompts, repeated tool calls, and retry loops compound across a session. If you are running autonomous or semi-autonomous workflows, you need per-request visibility instead of waiting for a provider dashboard to tell you the damage afterward. <strong>agent-bill-guard</strong> is a small local Python proxy that sits between Claude Code and the Anthropic API so you can inspect token usage, cost, and tool activity in real time.</p>
+
+      <h2>Why Claude Code Billing Becomes Hard to Predict</h2>
+      <p>The main problem is not just prompt size. Claude Code style workflows often include a growing conversation buffer, structured tool schemas, command output, file diffs, and retries after tool failures. A single task can fan out into many requests, and each request may carry more context than the last. From the terminal, that usually looks like “the agent is still working,” but the bill may be rising on every turn.</p>
+      <p>This is why raw invoice totals are not enough for debugging cost. To understand claude code billing, you need request-level attribution: input tokens, output tokens, estimated cost, and whether tool-heavy turns are the real driver. Without that, optimization turns into guesswork.</p>
+      <p class="note">Local instrumentation is especially useful when you are tuning prompts, evaluating agent loops, or testing tools that can accidentally create recursive or overly chatty behavior.</p>
+
+      <h2>What agent-bill-guard Actually Does</h2>
+      <p>agent-bill-guard is intentionally narrow in scope. It proxies API traffic locally, prints usage details to the terminal, and can enforce configurable spend limits. That makes it practical for development machines, CI experiments, or any place you want a lightweight safety rail without adding another service.</p>
+      <p>Its design is appealing for developer environments because it is stdlib-only Python. There is no dependency stack to audit, no database, and no hosted dashboard. You run it locally, point Claude Code at the proxy, and inspect the output as requests pass through.</p>
+      <pre><code>git clone https://github.com/paprika-org/agent-bill-guard.git
+cd agent-bill-guard
+
+# Start the local proxy
+python3 agent_bill_guard.py --listen 127.0.0.1:8080 --upstream https://api.anthropic.com
+
+# Example terminal output
+[req 14] model=claude input_tokens=18234 output_tokens=911
+[req 14] tools=bash,read_file estimated_cost_usd=0.47
+[session] total_requests=14 total_cost_usd=3.92
+[guard] soft_limit_usd=5.00 hard_limit_usd=7.50
+
+# When hard limit is reached, the proxy blocks new requests
+[guard] request denied: session spend limit exceeded</code></pre>
+      <p>The value here is operational, not cosmetic. You can see whether an expensive turn came from prompt growth, output verbosity, or an agent repeatedly invoking tools. For claude code billing, that feedback loop is much more actionable than reading aggregate usage later.</p>
+
+      <h2>How to Use It for Cost Debugging</h2>
+      <p>A good workflow is to treat cost tracing like performance tracing. Start with a known task, run it through the proxy, and observe which requests dominate spend. In many cases, the highest-cost turns are not the ones you expect. A harmless-looking refactor can become expensive if the agent keeps re-reading large files or embedding prior command output in full.</p>
+      <p>Once you have the request breakdown, you can make targeted changes:</p>
+      <ul>
+        <li>Reduce oversized context windows by trimming file reads and irrelevant history.</li>
+        <li>Lower retry churn by fixing flaky tool commands or adding clearer failure handling.</li>
+        <li>Set session-level limits for experiments so an agent stops before a loop becomes costly.</li>
+        <li>Compare tasks before and after prompt changes instead of relying on intuition.</li>
+      </ul>
+      <p>This is also where honest limitations matter. agent-bill-guard can estimate and track usage in real time, but it does not replace provider-side billing records. If Anthropic pricing changes, if a model has special accounting rules, or if you need formal invoice reconciliation, you still need the upstream source of truth. The proxy is for local visibility and guardrails, not financial reporting.</p>
+
+      <h2>Common Mistakes</h2>
+      <p><strong>Forgetting that context growth is cumulative.</strong> Developers often test a single request and conclude the cost is acceptable. In real agent sessions, repeated file snapshots, command output, and conversation history make later requests far more expensive than the first one.</p>
+      <p><strong>Using spend limits only after problems appear.</strong> If you enable hard limits after debugging starts, you are already exposed to the runaway case you meant to prevent. Set thresholds before experiments, especially when testing new tools or autonomous flows.</p>
+      <p><strong>Assuming tool calls are “free overhead.”</strong> The tool invocation itself is not the whole story. The request may include tool schemas, prior results, and extra recovery prompts, all of which affect claude code billing.</p>
+      <p><strong>Expecting historical analytics.</strong> agent-bill-guard is a local runtime proxy. If you want cross-machine aggregation, long-term dashboards, or team-wide reporting, you will need to build that separately.</p>
+
+      <h2>Frequently Asked Questions</h2>
+      <h3>Does agent-bill-guard change Claude Code prompts or responses?</h3>
+      <p>No. It acts as a local proxy for request and response inspection. It tracks usage, cost, and tool calls, but it does not rewrite prompts or alter model output.</p>
+
+      <h3>Can it stop a runaway session automatically?</h3>
+      <p>Yes. You can configure spend limits so requests are blocked once a threshold is reached, which is useful when an agent starts looping or making excessive tool calls.</p>
+
+      <h3>Is agent-bill-guard a hosted billing dashboard?</h3>
+      <p>No. It runs locally, uses only the Python standard library, and prints per-request details directly in the terminal instead of sending usage data to a remote service.</p>
+
+      <h3>What does it not solve for Claude Code billing?</h3>
+      <p>It does not replace Anthropic account billing, historical invoice reporting, or pricing policy changes. It helps with local visibility and guardrails during development sessions.</p>
+
+      <div class="cta">
+        <p>If you need a pragmatic way to inspect claude code billing and stop runaway sessions before they burn budget, review the code and setup instructions on <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>.</p>
+      </div>
+
+      <footer>
+        Canonical URL: <a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html</a>
+      </footer>
+    </article>
+  </div>
+</body>
+</html>
