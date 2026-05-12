@@ -210,6 +210,32 @@
         flex-direction: column;
       }
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
 
   <script type="application/ld+json">
@@ -371,7 +397,16 @@ claude</code></pre>
       <h3>Can I enforce a hard budget limit on claude code cost locally?</h3>
       <p>Yes. A local proxy such as agent-bill-guard can sit between Claude Code and the Anthropic API, track usage in real time, and terminate requests when a configured spend limit is exceeded.</p>
 
-      <div class="cta">
+      
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-api-cost.html">claude code api cost</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+      <li><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits</a></li>
+        </ul>
+      </div>
+<div class="cta">
         <h2>Get started with agent-bill-guard</h2>
         <p>Install the local proxy, route Claude Code through it, and put a hard ceiling on spend before the next runaway session.</p>
         <pre><code>npm install -g github:paprika-org/agent-bill-guard</code></pre>

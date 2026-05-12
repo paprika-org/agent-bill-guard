@@ -132,6 +132,32 @@
       .nav-inner { padding: 14px 16px; }
       .wrap { padding: 0 16px 36px; }
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"Article","headline":"Claude Code Billing: Track Token Costs Locally with agent-bill-guard","description":"A practical guide to Claude Code billing: how token costs accumulate, how to inspect usage locally, and how agent-bill-guard can enforce spend limits while you iterate.","url":"https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html","datePublished":"2026-05-12","dateModified":"2026-05-12","publisher":{"@type":"Organization","name":"agent-bill-guard"}}
@@ -212,7 +238,16 @@ python3 agent_bill_guard.py --listen 127.0.0.1:8080 --upstream https://api.anthr
       <h3>What does it not solve for Claude Code billing?</h3>
       <p>It does not replace Anthropic account billing, historical invoice reporting, or pricing policy changes. It helps with local visibility and guardrails during development sessions.</p>
 
-      <div class="cta">
+      
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-cost.html">claude code cost</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+      <li><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits</a></li>
+        </ul>
+      </div>
+<div class="cta">
         <p>If you need a pragmatic way to inspect claude code billing and stop runaway sessions before they burn budget, review the code and setup instructions on <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>.</p>
       </div>
 
