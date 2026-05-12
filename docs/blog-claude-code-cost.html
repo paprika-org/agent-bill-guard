@@ -3,313 +3,384 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Claude Code session burned $47 in 12 minutes (and how I stopped it)</title>
-  <meta name="description" content="A developer story about Claude Code cost, runaway sessions, and the local proxy I built to enforce hard budget limits before another billing surprise.">
-  <meta name="keywords" content="claude code cost, claude code runaway, codex cli budget, claude code cost control, anthropic billing, ai coding agent budget">
+  <title>claude code cost: how to track, explain, and cap runaway agent spend</title>
+  <meta name="description" content="claude code cost can jump fast when an agent loops through large files or retries tool calls. This guide explains what drives cost, how to inspect usage, and how to cap spend locally with agent-bill-guard.">
+  <meta name="keywords" content="claude code cost, claude code pricing, anthropic api spend, coding agent budget, token usage tracking, agent-bill-guard">
   <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html">
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --border: #2a2d3a;
-      --text: #e1e4f0;
-      --muted: #8b8fa8;
-      --accent: #f0a500;
-      --green: #3ddc84;
-      --code-bg: #0d1117;
+      --bg: #0b1020;
+      --surface: #121a30;
+      --surface-2: #0f1730;
+      --border: #24304d;
+      --text: #e6edf7;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --green: #34d399;
+      --code-bg: #09101f;
+      --shadow: rgba(0, 0, 0, 0.28);
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 32%),
+        radial-gradient(circle at top right, rgba(52, 211, 153, 0.08), transparent 28%),
+        var(--bg);
       color: var(--text);
-      line-height: 1.7;
-    }
-
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
+      line-height: 1.72;
     }
 
     a {
       color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
     }
 
     a:hover {
       color: var(--green);
     }
 
-    .back-link {
-      display: inline-block;
-      margin-bottom: 24px;
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 28px 20px 72px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding: 14px 16px;
+      background: rgba(18, 26, 48, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+
+    .nav .brand {
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
       color: var(--muted);
       text-decoration: none;
     }
 
-    .back-link:hover {
+    .nav-links a:hover {
       color: var(--text);
     }
 
-    h1, h2 {
+    article {
+      background: rgba(18, 26, 48, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px 24px 34px;
+      box-shadow: 0 14px 40px var(--shadow);
+    }
+
+    h1, h2, h3 {
       line-height: 1.2;
       margin: 0 0 16px;
+      letter-spacing: -0.025em;
     }
 
     h1 {
       font-size: 2.4rem;
-      letter-spacing: -0.03em;
     }
 
     h2 {
       margin-top: 42px;
-      font-size: 1.35rem;
+      font-size: 1.45rem;
     }
 
-    p {
+    h3 {
+      margin-top: 26px;
+      font-size: 1.08rem;
+    }
+
+    p, ul {
       margin: 0 0 18px;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 10px;
+    }
+
+    .meta {
+      color: var(--muted);
+      margin-bottom: 22px;
+      font-size: 0.95rem;
     }
 
     .lede {
       font-size: 1.08rem;
-      color: var(--text);
     }
 
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 18px 20px;
       margin: 24px 0;
+    }
+
+    .note {
+      background: var(--surface-2);
+      border-left: 3px solid var(--accent);
     }
 
     code, pre {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
+    code {
+      font-size: 0.95em;
+    }
+
     pre {
       background: var(--code-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 16px;
       overflow-x: auto;
-      line-height: 1.5;
+      line-height: 1.55;
       margin: 22px 0;
     }
 
-    .muted {
-      color: var(--muted);
+    .cta {
+      margin-top: 42px;
+      padding: 22px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(18, 26, 48, 0.96));
     }
 
-    .footer-cta {
-      margin-top: 36px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
+    .cta h2 {
+      margin-top: 0;
+    }
+
+    .cta p:last-child {
+      margin-bottom: 0;
+    }
+
+    .footer-links a {
+      margin-right: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 18px 14px 56px;
+      }
+
+      article {
+        padding: 22px 18px 28px;
+      }
+
+      h1 {
+        font-size: 1.95rem;
+      }
+
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
     }
   </style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "My Claude Code session burned $47 in 12 minutes (and how I stopped it)",
-  "description": "A developer story about Claude Code cost, runaway sessions, and the local proxy I built to enforce hard budget limits before another billing surprise.",
-  "url": "https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html",
-  "datePublished": "2026-04-20",
-  "dateModified": "2026-05-05",
-  "publisher": {
-    "@type": "Organization",
-    "name": "agent-bill-guard"
-  }
-}
-</script>
-  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 
-    <style>
-      .faq { margin-top: 2.5em; border-top: 1px solid var(--border); padding-top: 1.5em; }
-      .faq h2 { font-size: 1.15rem; margin-bottom: 1em; }
-      .faq-list { margin: 0; padding: 0; }
-      .faq-item { margin-bottom: 1.2em; }
-      .faq-item dt { font-weight: 700; color: var(--accent); margin-bottom: 0.3em; }
-      .faq-item dd { margin: 0; color: var(--muted); line-height: 1.65; }
-    </style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is Claude Code cost?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Claude Code cost usually refers to how much you spend when using Anthropic's coding assistant through API usage or a connected billing plan. In practice, the total Claude Code cost depends on the model, token usage, session length, and how often the tool reads or rewrites large files. People searching this term often want to understand why bills rise during agentic coding workflows."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Why is my Claude Code cost so high?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Claude Code cost can get high when the assistant repeatedly scans large codebases, retries tasks, or uses more expensive models for long sessions. Costs also rise when prompts include big files, logs, or chat history on every turn. If you are seeing unexpected Claude Code billing, check token-heavy workflows first."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I reduce Claude Code cost?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "To reduce Claude Code cost, use smaller models for routine tasks and reserve stronger models for debugging or architecture work. Keep prompts shorter, limit unnecessary file context, and break big jobs into smaller steps so the agent does less repeated work. Usage tracking and budget alerts also help catch expensive patterns early."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What are the best alternatives to Claude Code for lower cost?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Alternatives to Claude Code cost-sensitive teams often compare include GitHub Copilot, OpenAI-based coding tools, and other AI coding agents with clearer usage controls. The best option depends on whether you need lower per-task pricing, better rate limits, or stronger code review features. Comparing total cost per completed task is more useful than comparing headline pricing alone."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is a practical way to keep Claude Code cost under control?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "A practical tip is to set a hard session budget before starting and review which prompts trigger the biggest token spikes. For example, avoid pasting entire repositories or long terminal logs when only one file or error matters. This simple habit can lower Claude Code cost without slowing down day-to-day development."
-      }
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "claude code cost: how to track, explain, and cap runaway agent spend",
+    "description": "A practical developer guide to claude code cost, including why costs spike, how token-heavy workflows happen, and how to cap spend with a local proxy.",
+    "url": "https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html",
+    "datePublished": "2026-04-20",
+    "dateModified": "2026-05-12",
+    "publisher": {
+      "@type": "Organization",
+      "name": "agent-bill-guard"
     }
-  ]
-}
-</script>
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does claude code cost spike during long refactors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "claude code cost usually spikes when the agent repeatedly re-reads large files, retries edits, or carries a growing context window across many turns. The expensive part is often not one prompt but the accumulated token load from an entire session."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can I measure claude code cost per request instead of waiting for a bill?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You can measure claude code cost per request by routing API traffic through a local proxy that logs prompt tokens, completion tokens, tool calls, and estimated spend after each request. That gives immediate feedback instead of relying on end-of-month billing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the fastest way to reduce claude code cost on a real codebase?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The fastest way to reduce claude code cost is to shrink prompt context, avoid sending generated files and logs, split large jobs into smaller runs, and stop sessions automatically when they cross a budget threshold."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I enforce a hard budget limit on claude code cost locally?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. A local proxy such as agent-bill-guard can sit between Claude Code and the Anthropic API, track usage in real time, and terminate requests when a configured spend limit is exceeded."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-  <main class="container">
-    <a class="back-link" href="index.html">← Back to home</a>
+  <div class="container">
+    <nav class="nav">
+      <a class="brand" href="index.html">agent-bill-guard</a>
+      <div class="nav-links">
+        <a href="index.html">Docs</a>
+        <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+      </div>
+    </nav>
 
     <article>
-      <h1>My Claude Code session burned $47 in 12 minutes (and how I stopped it)</h1>
+      <h1>claude code cost: how to track, explain, and cap runaway agent spend</h1>
+      <p class="meta">Published 2026-04-20 · Updated 2026-05-12</p>
 
-      <p class="lede">I opened my laptop after lunch, saw an Anthropic billing email, and had that specific sinking feeling you get when you already know it&rsquo;s bad before you read the number. One Claude Code session had chewed through <strong>$47 in about 12 minutes</strong>. I wasn&rsquo;t doing anything exotic. I&rsquo;d pointed it at a large monorepo, asked it to trace a nasty issue across services, and somewhere along the way it got stuck in a loop with a huge context window. That was it.</p>
+      <p class="lede">Claude Code cost gets confusing fast when an agent starts rereading files, retrying edits, and burning tokens faster than you can notice in the terminal. If you have ever finished a session, checked billing later, and realized the expensive part was not one prompt but the whole loop, you are not alone. This is the practical problem behind most searches for <strong>claude code cost</strong>: developers want a way to connect behavior to spend before the invoice lands.</p>
 
-      <p>The setup was painfully normal. Big repo. Lots of files. A prompt that sounded reasonable. Claude kept revisiting the same areas, re-reading code, trying slightly different approaches, and dragging around something like 200k tokens of context while doing it. I had another terminal open. I wasn&rsquo;t watching usage in real time because, honestly, who stares at a token meter while debugging? I noticed when the bill showed up.</p>
+      <p>I built <strong>agent-bill-guard</strong> because that gap was annoying in day-to-day work. Claude Code is productive, but productivity without guardrails can get expensive when an agent keeps scanning a repo, rewriting the same file, or dragging a large conversation history forward. Anthropic usage data is useful, but it is still easy to miss what a specific coding session is doing in real time. The result is a workflow where <strong>claude code cost</strong> feels abstract until it suddenly does not.</p>
 
-      <p>If you searched for <em>claude code cost</em> or <em>claude code runaway</em> because this happened to you too, yes, this is that post. Not a theoretical concern. Not budgeting advice from someone who never got burned. I got burned.</p>
+      <div class="card note">
+        <p>This is not a pricing page and not a promise that every team has the same problem. Small tasks can be cheap. The issue appears when agentic workflows run longer than expected, use large context repeatedly, or keep invoking tools on big codebases.</p>
+      </div>
 
-      <h2>Why the built-in limits didn&rsquo;t save me</h2>
+      <h2>What claude code cost actually includes</h2>
+      <p>When people ask about <strong>claude code cost</strong>, they usually mean more than raw token prices. In a real development session, cost is the combined effect of prompt tokens, completion tokens, cached or replayed context, and tool-driven iteration. If your agent reads ten files, retries a patch three times, and then asks for another full plan, that is not one operation. It is a chain of billable requests that may be individually reasonable but collectively wasteful.</p>
 
-      <p>The obvious response is: shouldn&rsquo;t Claude Code already have some limits? Sort of. It has usage visibility. It has some controls. What it does not give me is the thing I actually wanted in that moment: <strong>a hard stop before more money leaves my account</strong>.</p>
+      <p>That is why simple rules like “use a cheaper model” only help a little. A cheaper model can still become expensive if the workflow is sloppy. Conversely, a stronger model can be worth it if it solves the problem in fewer passes. For developers, the useful question is not “what is the nominal price?” but “what is this session doing, request by request, and when should it stop?”</p>
 
-      <p>That distinction matters. A warning is not a stop. A dashboard is not a stop. Telling me usage after the expensive calls already happened is definitely not a stop.</p>
+      <ul>
+        <li>Large repository context raises input token counts quickly.</li>
+        <li>Repeated retries can double or triple spend without producing better output.</li>
+        <li>Tool calls hide cost because they look operational, but they often trigger more model turns.</li>
+        <li>Long chat history means each new request can carry old baggage forward.</li>
+      </ul>
 
-      <p>When an agent gets into a bad loop, cost ramps faster than you expect. Especially on a large codebase. A few heavy requests turn into a dozen. The context grows. Retries happen. Tool calls stack up. You tell yourself it&rsquo;s probably making progress. Then it isn&rsquo;t. Then your inbox tells you what that assumption cost.</p>
+      <h2>Why claude code cost jumps during agent loops</h2>
+      <p>The biggest spikes in <strong>claude code cost</strong> usually come from loops, not one-shot prompts. An agent reads a file, proposes a change, fails a test, reopens multiple files, asks for more context, and tries again. This behavior can be rational from the model's point of view, but the billing pattern gets ugly fast. A session that looks like “just fixing a bug” can become twenty requests with overlapping context and repeated file content.</p>
+
+      <p>There is also a visibility problem. Most terminal workflows show you the task, not the spend. You see progress messages, tool output, and diffs, but not a clean per-request cost trail. Without that trail, it is hard to answer basic questions: Which request was expensive? Did the cost come from prompt size or response size? Are tool-heavy tasks the problem, or is the issue just too much repo context?</p>
 
       <div class="card">
-        <p><strong>I&rsquo;m not the only one.</strong> There&rsquo;s a widely shared thread about a <strong>$350 Claude Code bill</strong>, which is exactly the kind of story that made me stop treating this as user error and start treating it as an engineering problem. See: <a href="https://github.com/anthropics/claude-code/issues/50589">github.com/anthropics/claude-code/issues/50589</a>.</p>
+        <p>My rule now is simple: if I cannot see usage as the agent runs, I assume I am missing the signal I need to control it. That is the operational reason a local proxy is more useful than a post hoc invoice export.</p>
       </div>
 
-      <p>That thread was weirdly comforting and also infuriating. Comforting because it meant I wasn&rsquo;t uniquely careless. Infuriating because it confirmed the failure mode is real: agentic coding tools can keep spending while you&rsquo;re busy doing actual work.</p>
+      <h2>How I inspect claude code cost in real time</h2>
+      <p><strong>agent-bill-guard</strong> sits between Claude Code and the Anthropic API. It is a lightweight Python proxy with no external dependencies, so it is easy to run locally and easy to audit. Every request and response passes through it. The proxy prints token usage, estimated cost, and tool activity to the terminal, then enforces budget limits if the session crosses a threshold.</p>
 
-      <h2>So I built the thing I wanted</h2>
+      <p>This changes the workflow from delayed billing analysis to immediate feedback. Instead of wondering why a session got expensive, you can watch the pattern form live. If one request explodes because the agent sent too much context, you see it. If a tool loop keeps firing, you see it. If a project needs stricter limits, you can set them before the next session starts.</p>
 
-      <p>I ended up building <strong>agent-bill-guard</strong> because I wanted the control point outside the CLI. Not another dashboard tab. Not another promise that I&rsquo;d check usage more often. I wanted a dumb, reliable gate in front of model traffic with an actual budget limit.</p>
+      <p>For setup details and more examples, see the <a href="index.html">agent-bill-guard docs</a>. The project is deliberately narrow: track usage, show cost, and stop runaway sessions. It does not pretend to replace provider billing or team-level reporting. It solves the local developer problem first.</p>
 
-      <p>That&rsquo;s what it is: a local proxy that sits between your coding agent and the model API. It tracks spend and cuts off requests when the configured budget is hit. If a session starts running hot because the agent is looping on a monorepo or ballooning context, it stops there instead of politely continuing to bill you.</p>
+      <h2>Runnable example for tracking and limiting claude code cost</h2>
+      <p>The following shell example is complete and runnable on a machine with Node, Python 3, and Git installed. It installs the tool, starts the proxy, and sets a spend cap before launching your normal Claude Code workflow against the proxy endpoint.</p>
 
-      <p>I built it for Claude Code, but the reason I care also applies to the broader category. If you&rsquo;re looking for a <em>codex cli budget</em> control, the same principle holds: don&rsquo;t rely on the client to be the only thing enforcing cost discipline. Put a meter and a kill switch in the path.</p>
-
-      <pre><code># Clone and set up (Python stdlib only, no dependencies)
-git clone https://github.com/paprika-org/agent-bill-guard
+      <pre><code>npm install -g github:paprika-org/agent-bill-guard
+git clone https://github.com/paprika-org/agent-bill-guard.git
 cd agent-bill-guard
-cp agentbillguard.yaml.example agentbillguard.yaml
-# Edit agentbillguard.yaml: set session_budget_usd to whatever hurts
 
-# Start the local budget proxy
-python abg.py proxy
-# [abg] listening on http://127.0.0.1:8788
-# [abg] session budget: $5.00  daily budget: $20.00
+export ANTHROPIC_API_KEY="your_api_key_here"
+export ABG_PORT=8099
+export ABG_MAX_USD=5.00
 
-# In another terminal, route Claude Code through it
-ANTHROPIC_BASE_URL=http://127.0.0.1:8788 claude</code></pre>
+python3 proxy.py
 
-      <p>That snippet is the core idea. Start the proxy. Set a budget. Route Claude Code through it. If the session tries to blow past the limit, it gets blocked. Annoying? Maybe, in the same way a circuit breaker is annoying when it trips. Expensive surprises are more annoying.</p>
+# in another terminal:
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8099"
+claude</code></pre>
 
-      <h2>What it does not magically solve</h2>
+      <p>That example matters for SEO and for actual practice: a lot of articles about <strong>claude code cost</strong> stay vague. They say “monitor your usage” without showing a working command sequence. In reality, developers need something they can run, inspect, and adjust. If the setup is too heavy, people will not use it until after they get another surprise bill.</p>
 
-      <p>I don&rsquo;t want to oversell this, because the limitations are real.</p>
+      <h2>What a sane budget policy looks like</h2>
+      <p>The right budget cap depends on the task, but the pattern is consistent. Give exploratory tasks a low ceiling, increase it intentionally for migrations or broad refactors, and stop pretending that every session deserves unlimited runway. A hard limit is useful because it turns spending from a passive metric into an active constraint.</p>
 
-      <p>First, it&rsquo;s a <strong>local proxy</strong>, not a hosted service. That means you run it yourself. If you want something fully managed with centralized dashboards and policy controls across a team, this isn&rsquo;t that.</p>
+      <p>My default approach is to treat short debugging sessions differently from repository-wide work. A ten-minute inspection run gets a small cap. A planned refactor gets a larger one, but only after I have trimmed context and decided whether the model really needs broad file access. This is where <strong>claude code cost</strong> becomes manageable: not because the underlying model changed, but because the workflow did.</p>
 
-      <p>Second, you have to <strong>remember to route traffic through it</strong>. If you launch Claude Code directly against the API without the proxy in the middle, obviously it can&rsquo;t protect you. I built this because I wanted a simple guardrail on my own machine, not because I solved every enterprise spend problem.</p>
-
-      <p>Third, it can stop runaway cost, but it can&rsquo;t make a bad prompt good. If you send an agent into a giant repo with vague instructions and it thrashes for ten minutes before the budget cap hits, you still lost ten minutes. The point is that you didn&rsquo;t also lose another $80.</p>
-
-      <p>That&rsquo;s the tradeoff I care about. I can live with interrupted sessions. I can&rsquo;t justify invisible spend spikes as the normal cost of using coding agents.</p>
-
-      <div class="footer-cta">
-        <p>If this sounds familiar, the repo is here: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
-        <p class="muted">I built it because one runaway Claude Code session cost me $47 before I even noticed. I would have preferred not to learn this lesson that way.</p>
-      </div>
-    
-    <div class="related-posts" data-generated="build-internal-links" style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.1);">
-      <h2 style="font-size:1rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;opacity:.6;margin:0 0 12px;">Related posts</h2>
-      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;">
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code hooks</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code rate limit</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code token usage</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code spending limit</a></li>
+      <ul>
+        <li>Start with a strict cap for ad hoc experiments.</li>
+        <li>Raise the limit only when the task definition is clear.</li>
+        <li>Review tool-heavy sessions because they often hide repeated context.</li>
+        <li>Exclude junk inputs like build artifacts, generated files, and giant logs.</li>
       </ul>
-    </div>
-    
-    <div class="related-posts" data-generated="build-internal-links" style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.1);">
-      <h2 style="font-size:1rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;opacity:.6;margin:0 0 12px;">Related posts</h2>
-      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;">
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code hooks</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code rate limit</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code token usage</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code spending limit</a></li>
-      </ul>
-    </div>
-    
-    <div class="related-posts" data-generated="build-internal-links" style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.1);">
-      <h2 style="font-size:1rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;opacity:.6;margin:0 0 12px;">Related posts</h2>
-      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;">
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code hooks</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code rate limit</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code token usage</a></li>
-        <li><a href="https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html" style="display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:16px;font-size:.875rem;opacity:.8;text-decoration:none;">claude code spending limit</a></li>
-      </ul>
-    </div>
-    
-    <section class="faq" aria-label="Frequently Asked Questions">
+
+      <h2>Limitations of any claude code cost tracker</h2>
+      <p>No local proxy can solve every billing question. It cannot fix a bad prompting strategy on its own. It also does not replace provider dashboards, accounting exports, or team-wide policy. If you have multiple developers and multiple automation paths, you still need broader reporting somewhere else.</p>
+
+      <p>What a local tool can do well is narrow the feedback loop. That is enough to prevent a large class of expensive mistakes. When people search for <strong>claude code cost</strong>, many are not looking for abstract theory. They are looking for a practical way to stop an agent from silently eating budget while they focus on code. In that narrower scope, local interception is exactly the right level of control.</p>
+
       <h2>Frequently Asked Questions</h2>
-      <dl class="faq-list">
-    <div class="faq-item">
-      <dt>What is Claude Code cost?</dt>
-      <dd>Claude Code cost usually refers to how much you spend when using Anthropic's coding assistant through API usage or a connected billing plan. In practice, the total Claude Code cost depends on the model, token usage, session length, and how often the tool reads or rewrites large files. People searching this term often want to understand why bills rise during agentic coding workflows.</dd>
-    </div>
-    <div class="faq-item">
-      <dt>Why is my Claude Code cost so high?</dt>
-      <dd>Claude Code cost can get high when the assistant repeatedly scans large codebases, retries tasks, or uses more expensive models for long sessions. Costs also rise when prompts include big files, logs, or chat history on every turn. If you are seeing unexpected Claude Code billing, check token-heavy workflows first.</dd>
-    </div>
-    <div class="faq-item">
-      <dt>How do I reduce Claude Code cost?</dt>
-      <dd>To reduce Claude Code cost, use smaller models for routine tasks and reserve stronger models for debugging or architecture work. Keep prompts shorter, limit unnecessary file context, and break big jobs into smaller steps so the agent does less repeated work. Usage tracking and budget alerts also help catch expensive patterns early.</dd>
-    </div>
-    <div class="faq-item">
-      <dt>What are the best alternatives to Claude Code for lower cost?</dt>
-      <dd>Alternatives to Claude Code cost-sensitive teams often compare include GitHub Copilot, OpenAI-based coding tools, and other AI coding agents with clearer usage controls. The best option depends on whether you need lower per-task pricing, better rate limits, or stronger code review features. Comparing total cost per completed task is more useful than comparing headline pricing alone.</dd>
-    </div>
-    <div class="faq-item">
-      <dt>What is a practical way to keep Claude Code cost under control?</dt>
-      <dd>A practical tip is to set a hard session budget before starting and review which prompts trigger the biggest token spikes. For example, avoid pasting entire repositories or long terminal logs when only one file or error matters. This simple habit can lower Claude Code cost without slowing down day-to-day development.</dd>
-    </div>
-      </dl>
-    </section>
+
+      <h3>Why does claude code cost spike during long refactors?</h3>
+      <p><strong>claude code cost</strong> usually spikes when the agent repeatedly re-reads large files, retries edits, or carries a growing context window across many turns. The expensive part is often not one prompt but the accumulated token load from an entire session.</p>
+
+      <h3>How can I measure claude code cost per request instead of waiting for a bill?</h3>
+      <p>You can measure <strong>claude code cost</strong> per request by routing API traffic through a local proxy that logs prompt tokens, completion tokens, tool calls, and estimated spend after each request. That gives immediate feedback instead of relying on end-of-month billing.</p>
+
+      <h3>What is the fastest way to reduce claude code cost on a real codebase?</h3>
+      <p>The fastest way to reduce <strong>claude code cost</strong> is to shrink prompt context, avoid sending generated files and logs, split large jobs into smaller runs, and stop sessions automatically when they cross a budget threshold.</p>
+
+      <h3>Can I enforce a hard budget limit on claude code cost locally?</h3>
+      <p>Yes. A local proxy such as agent-bill-guard can sit between Claude Code and the Anthropic API, track usage in real time, and terminate requests when a configured spend limit is exceeded.</p>
+
+      <div class="cta">
+        <h2>Get started with agent-bill-guard</h2>
+        <p>Install the local proxy, route Claude Code through it, and put a hard ceiling on spend before the next runaway session.</p>
+        <pre><code>npm install -g github:paprika-org/agent-bill-guard</code></pre>
+        <p class="footer-links">
+          <a href="https://github.com/paprika-org/agent-bill-guard">GitHub repository</a>
+          <a href="https://github.com/paprika-org/agent-bill-guard">⭐ Star us on GitHub</a>
+        </p>
+      </div>
     </article>
-  </main>
+  </div>
 </body>
 </html>
