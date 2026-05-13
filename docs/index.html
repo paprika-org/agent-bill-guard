@@ -225,19 +225,27 @@
   </section>
 </main>
 
-<section style="border-top:1px solid var(--border);padding-top:2rem;margin-top:3rem;">
-  <h3>From the blog</h3>
-  <p><a href="blog-claude-code-cost.html">My Claude Code session burned $47 in 12 minutes (and how I stopped it)</a> — the incident that led to this tool, and why built-in warnings aren't the same as a hard stop.</p>
-  <p style="margin-top:0.75rem;"><a href="blog-claude-code-hooks.html">Claude Code Hooks: What They Can (and Can't) Do for Cost Control</a> — hooks are great for behavioral governance; here's why you still need a proxy for spend tracking.</p>
-  <p style="margin-top:0.75rem;"><a href="blog-claude-code-budget.html">Setting a hard spending limit for Claude Code sessions</a> — account-level limits don't protect you from a single runaway session; here's how to enforce a per-session cap locally.</p>
-  <p style="margin-top:0.75rem;"><a href="blog-claude-code-token-usage.html">Claude Code Token Usage: How to See Tokens During a Session</a> — hooks don't expose token counts; here's how a local proxy reads usage.input_tokens from the raw API response.</p>
-  <p style="margin-top:0.75rem;"><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits: What They Are and How to Stay Under Them</a> — agentic loops and growing session history hit rate limits faster than expected; here's how live token tracking helps you stay under them deliberately.</p>
-</section>
 
 <footer>
   <p>Built by <a href="https://github.com/paprika-org">paprika-org</a> · <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a> · MIT license</p>
 </footer>
-  <!-- feedback-cta-section -->
+  <!-- seo-blog-links-start -->
+<section style="border-top:1px solid var(--border);padding-top:2rem;margin-top:3rem;">
+  <h3>From the blog</h3>
+  <p><a href="blog-claude-code-billing.html">Claude Code Billing: Track Token Costs Locally with agent-bill-guard</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-usage-tracking.html">Claude Code Usage Tracking with a Local Proxy That Measures Tokens, Cost, and Tool Calls</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-expensive.html">claude code expensive: how to measure and control real agent spend</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-api-cost.html">claude code api cost: practical ways to measure and control spend locally</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-cost.html">claude code cost: how to track, explain, and cap runaway agent spend</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-hooks.html">Claude Code Hooks: What They Can (and Can't) Do for Cost Control</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-rate-limit.html">Claude Code Rate Limits: What They Are and How to Stay Under Them</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-token-usage.html">Claude Code Token Usage: Track Sessions Live with agent-bill-guard</a></p>
+  <p style="margin-top:0.75rem;"><a href="blog-claude-code-budget.html">claude code spending limit: enforce a hard per-session budget locally</a></p>
+  <p style="margin-top:1rem;font-size:0.85rem;opacity:0.7;"><a href="blog-index.html">All articles →</a></p>
+</section>
+<!-- seo-blog-links-end -->
+
+<!-- feedback-cta-section -->
   <section style="background:#111;border:1px solid #333;border-radius:8px;padding:2rem;margin:2rem auto;max-width:640px;text-align:center;">
     <h2 style="color:#fff;font-size:1.1rem;margin:0 0 0.5rem;">Tell us how you're using agent-bill-guard</h2>
     <p style="color:#aaa;font-size:0.9rem;margin:0 0 1.25rem;">Takes 30 seconds. Helps us build the right things.</p>
