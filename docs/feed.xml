@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>agent-bill-guard — Claude Code Cost Control</title>
+    <link>https://paprika-org.github.io/agent-bill-guard</link>
+    <description>Technical blog: Claude Code token usage tracking, spending limits, budget enforcement, and cost management for developers.</description>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 13 May 2026 12:07:37 GMT</lastBuildDate>
+    <atom:link href="https://paprika-org.github.io/agent-bill-guard/feed.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>Claude Code Billing: Track Token Costs Locally with agent-bill-guard</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html</link>
+    <description>A practical guide to Claude Code billing: how token costs accumulate, how to inspect usage locally, and how agent-bill-guard can enforce spend limits while you iterate.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html</guid>
+    <pubDate>Tue, 12 May 2026 07:33:13 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>Claude Code Usage Tracking with a Local Proxy That Measures Tokens, Cost, and Tool Calls</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-usage-tracking.html</link>
+    <description>A practical guide to claude code usage tracking using agent-bill-guard, a local Python proxy that logs token usage, cost, and tool calls while enforcing spend limits.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-usage-tracking.html</guid>
+    <pubDate>Sun, 10 May 2026 07:32:28 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>claude code expensive: how to measure and control real agent spend</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-expensive.html</link>
+    <description>A technical guide to why Claude Code can get expensive, how token and tool usage actually drives cost, and how to enforce spend limits with Agent Bill Guard.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-expensive.html</guid>
+    <pubDate>Fri, 08 May 2026 07:32:29 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>claude code api cost: practical ways to measure and control spend locally</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-api-cost.html</link>
+    <description>A developer-focused guide to claude code api cost: how usage turns into spend, what to measure, where costs hide, and how to enforce local budget limits with agent-bill-guard.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-api-cost.html</guid>
+    <pubDate>Wed, 06 May 2026 09:08:57 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>Claude Code Rate Limits: What They Are and How to Stay Under Them</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html</link>
+    <description>Claude Code sessions can hit Anthropic API rate limits unexpectedly, especially in agentic loops. Here is how to track token usage live and avoid hitting caps.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-rate-limit.html</guid>
+    <pubDate>Tue, 21 Apr 2026 15:03:08 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>Claude Code Token Usage: Track Sessions Live with agent-bill-guard</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html</link>
+    <description>Claude Code token usage is hard to see while a session is running. This post explains how agent-bill-guard tracks tokens and estimated cost live with a tiny local Python proxy.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-token-usage.html</guid>
+    <pubDate>Tue, 21 Apr 2026 09:03:11 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>claude code spending limit: enforce a hard per-session budget locally</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html</link>
+    <description>claude code spending limit options are limited out of the box. This guide shows how to enforce a hard per-session budget locally with agent-bill-guard.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-budget.html</guid>
+    <pubDate>Mon, 20 Apr 2026 18:04:32 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>Claude Code Hooks: What They Can (and Can&apos;t) Do for Cost Control</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html</link>
+    <description>Claude Code hooks are useful for behavioral governance, but they cannot see Anthropic API cost data. Here&apos;s how I pair hooks with agent-bill-guard for spend monitoring.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-hooks.html</guid>
+    <pubDate>Mon, 20 Apr 2026 12:05:42 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  <item>
+    <title>claude code cost: how to track, explain, and cap runaway agent spend</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html</link>
+    <description>claude code cost can jump fast when an agent loops through large files or retries tool calls. This guide explains what drives cost, how to inspect usage, and how to cap spend locally with agent-bill-guard.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-claude-code-cost.html</guid>
+    <pubDate>Mon, 20 Apr 2026 06:06:19 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
+  </channel>
+</rss>
