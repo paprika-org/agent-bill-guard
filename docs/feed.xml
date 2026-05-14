@@ -5,8 +5,18 @@
     <link>https://paprika-org.github.io/agent-bill-guard</link>
     <description>Technical blog: Claude Code token usage tracking, spending limits, budget enforcement, and cost management for developers.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 13 May 2026 12:07:37 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 14 May 2026 08:20:14 GMT</lastBuildDate>
     <atom:link href="https://paprika-org.github.io/agent-bill-guard/feed.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>Anthropic API Cost Control with Local Proxy Guardrails</title>
+    <link>https://paprika-org.github.io/agent-bill-guard/blog-anthropic-api-cost-control.html</link>
+    <description>A practical guide to anthropic api cost control using a local Python proxy to track token usage, estimate spend, inspect tool calls, and enforce hard budget limits for Claude Code workflows.</description>
+    <guid isPermaLink="true">https://paprika-org.github.io/agent-bill-guard/blog-anthropic-api-cost-control.html</guid>
+    <pubDate>Thu, 14 May 2026 07:31:57 GMT</pubDate>
+    <category>Claude Code</category>
+    <category>AI Cost Control</category>
+    <category>Developer Tools</category>
+  </item>
   <item>
     <title>Claude Code Billing: Track Token Costs Locally with agent-bill-guard</title>
     <link>https://paprika-org.github.io/agent-bill-guard/blog-claude-code-billing.html</link>
