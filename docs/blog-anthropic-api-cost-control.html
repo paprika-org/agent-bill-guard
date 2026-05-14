@@ -122,6 +122,32 @@
       border-radius: 12px;
       background: rgba(15, 23, 42, 0.75);
     }
+  
+    .related-posts {
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0 2rem;
+      padding-top: 1.5rem;
+    }
+    .related-posts h2 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .related-posts ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+    }
+    .related-posts li a {
+      color: var(--link);
+      font-size: 0.95rem;
+    }
+
   </style>
   <script type="application/ld+json">
   {
@@ -228,7 +254,16 @@ python3 agent_bill_guard.py --listen 127.0.0.1:8000 --max-usd 2.50
       <h3>What is agent-bill-guard best at and where are its limits?</h3>
       <p>It is best at local observability and hard budget enforcement for Claude Code style workflows. Its limits are that it is not a hosted billing system, not a team dashboard, and not a replacement for careful prompt and tool design.</p>
 
-      <div class="cta">
+      
+      <div class="related-posts">
+        <h2>Related Articles</h2>
+        <ul>
+      <li><a href="blog-claude-code-api-cost.html">claude code api cost</a></li>
+      <li><a href="blog-claude-code-cost.html">claude code cost</a></li>
+      <li><a href="blog-claude-code-hooks.html">Claude Code Hooks</a></li>
+        </ul>
+      </div>
+<div class="cta">
         <p>If you need practical <strong>anthropic api cost control</strong> during local agent runs, inspect the code and try the proxy yourself: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
       </div>
     </article>
