@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anthropic API Cost Control with Local Proxy Guardrails</title>
+  <meta name="description" content="A practical guide to anthropic api cost control using a local Python proxy to track token usage, estimate spend, inspect tool calls, and enforce hard budget limits for Claude Code workflows.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-anthropic-api-cost-control.html">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --links: #7dd3fc;
+      --accent: #f59e0b;
+      --borders: #24304d;
+      --code-bg: #0f172a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a { color: var(--links); }
+    a:hover { color: var(--accent); }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 20px 48px;
+    }
+
+    nav {
+      border-bottom: 1px solid var(--borders);
+      background: rgba(11, 16, 32, 0.92);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-inner {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-inner a {
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    article {
+      margin-top: 28px;
+      background: var(--panel);
+      border: 1px solid var(--borders);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.25;
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin-top: 34px;
+      font-size: 1.45rem;
+      color: var(--accent);
+    }
+
+    h3 {
+      margin-top: 22px;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    p, li {
+      color: var(--text);
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.95rem;
+    }
+
+    ul {
+      padding-left: 22px;
+    }
+
+    .cta {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.75);
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"Anthropic API Cost Control with Local Proxy Guardrails",
+    "description":"A practical guide to anthropic api cost control using a local Python proxy to track token usage, estimate spend, inspect tool calls, and enforce hard budget limits for Claude Code workflows.",
+    "url":"https://paprika-org.github.io/agent-bill-guard/blog-anthropic-api-cost-control.html",
+    "datePublished":"2026-05-14",
+    "dateModified":"2026-05-14",
+    "publisher":{"@type":"Organization","name":"agent-bill-guard"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Why not rely on Anthropic's dashboard alone?",
+        "acceptedAnswer":{"@type":"Answer","text":"The dashboard is useful for after-the-fact reporting, but it does not stop a runaway local agent in the middle of execution. For development workflows, you usually need request-level visibility and a local kill switch."}
+      },
+      {
+        "@type":"Question",
+        "name":"Does a local proxy change model behavior?",
+        "acceptedAnswer":{"@type":"Answer","text":"It should not change model outputs if it only forwards requests and records metadata. The tradeoff is a small amount of local operational complexity because your client must target the proxy instead of the upstream API directly."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can this help with tool-heavy Claude Code sessions?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. Tool-heavy sessions are exactly where costs become hard to reason about because loops can trigger repeated tool calls and large context growth. Per-request logging makes those spikes visible immediately."}
+      },
+      {
+        "@type":"Question",
+        "name":"What is agent-bill-guard best at and where are its limits?",
+        "acceptedAnswer":{"@type":"Answer","text":"It is best at local observability and hard budget enforcement for Claude Code style workflows. Its limits are that it is not a hosted billing system, not a team dashboard, and not a replacement for careful prompt and tool design."}
+      }
+    ]
+  }
+  </script>
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html">agent-bill-guard</a>
+      <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <article>
+      <h1>Anthropic API Cost Control with Local Proxy Guardrails</h1>
+      <p class="meta">Published 2026-05-14</p>
+
+      <p>Effective <strong>anthropic api cost control</strong> is mostly an observability problem. If you run Claude Code or similar agent loops locally, costs do not usually come from one obviously bad prompt. They come from many small requests, repeated tool calls, and context growth that is hard to notice while you are focused on the task. A useful fix is to put a local proxy between your client and the Anthropic API so every request is measured before the bill surprises you.</p>
+
+      <h2>Why anthropic api cost control gets difficult in agent workflows</h2>
+      <p>Single request usage is easy to reason about. Agentic usage is not. Once a coding agent starts planning, calling tools, retrying, and carrying forward larger transcripts, token usage becomes nonlinear. A session that looked cheap at the start can become expensive because the prompt grows every turn and failures often trigger extra attempts.</p>
+      <p>That means basic end-of-day billing views are not enough. For real <strong>anthropic api cost control</strong>, developers need request-level telemetry during execution: input tokens, output tokens, estimated cost, and whether tool calls are multiplying the work. If you can only inspect cost after the run finishes, you are already too late to stop waste.</p>
+
+      <h2>Using a local proxy to enforce hard limits</h2>
+      <p><a href="https://github.com/paprika-org/agent-bill-guard">Agent Bill Guard</a> takes a pragmatic approach. It is a lightweight stdlib-only Python proxy that sits between Claude Code and the Anthropic API. Instead of sending requests directly upstream, your local client points at the proxy. The proxy logs each request and response, estimates cost, and can stop execution when a configured spending cap is reached.</p>
+      <p>The main value is not that cost estimates are perfect down to the cent. The value is that the control point exists locally, where the agent is running. That gives you immediate feedback and a hard failure mode when a loop starts burning tokens. For developer workflows, that is more useful than a passive dashboard.</p>
+
+      <pre><code># Example local setup and output
+git clone https://github.com/paprika-org/agent-bill-guard.git
+cd agent-bill-guard
+python3 agent_bill_guard.py --listen 127.0.0.1:8000 --max-usd 2.50
+
+# Configure your client to use the proxy endpoint, then run Claude Code.
+# Example terminal output:
+[request] model=claude-sonnet input_tokens=18214 tool_calls=2 est_cost_usd=0.0912
+[response] output_tokens=1468 total_est_cost_usd=0.1087 elapsed_ms=1842
+[request] model=claude-sonnet input_tokens=24590 tool_calls=5 est_cost_usd=0.1374
+[guard] projected spend 2.57 exceeds max-usd 2.50
+[guard] request blocked
+</code></pre>
+
+      <h2>What to measure for useful cost visibility</h2>
+      <p>Not every metric matters equally. For cost control, the highest-signal fields are input tokens, output tokens, cumulative session spend, and tool call count. Input token growth is often the first warning that the agent is carrying too much history. Tool count is the second warning, because bad loops usually involve repeated filesystem or shell actions that trigger more model calls around them.</p>
+      <p>Per-request logs also make debugging cheaper prompts easier. If one prompt template consistently produces larger outputs, or one tool path causes multiple retries, you can see it in the stream instead of guessing later. In practice, <strong>anthropic api cost control</strong> improves when you make the expensive path visible enough that you can simplify it.</p>
+
+      <h2>Honest limitations of the proxy approach</h2>
+      <p>A local proxy is a guardrail, not magic. First, cost estimates depend on the model pricing data and the proxy's accounting logic. They are operationally useful, but they may not match the provider invoice exactly in every edge case. Second, the proxy only controls traffic that actually goes through it. If one tool or script bypasses the proxy and hits the API directly, that traffic will not be tracked or blocked.</p>
+      <p>There is also a workflow tradeoff. Adding a proxy means one more local process, one more endpoint to configure, and one more place to inspect when requests fail. That is usually acceptable for development, but it is still extra moving parts. If you want organization-wide analytics, audit history, or cross-team billing dashboards, a local proxy is only one layer of the solution.</p>
+
+      <h2>Common mistakes</h2>
+      <p><strong>Mistake 1:</strong> Treating cumulative spend limits as a substitute for prompt discipline. A hard cap stops worst-case runaway behavior, but it does not make an inefficient prompt strategy good. You still need to trim context, reduce retries, and keep tool use deliberate.</p>
+      <p><strong>Mistake 2:</strong> Logging requests without watching projected totals. Per-request cost is helpful, but many overruns happen because each individual request looks acceptable in isolation. Session-level accumulation is what catches the slow bleed.</p>
+      <p><strong>Mistake 3:</strong> Forgetting that tool loops are often the real cost center. Developers sometimes focus only on prompt size, but recursive tool use can amplify both request count and context size very quickly.</p>
+
+      <h2>Frequently Asked Questions</h2>
+      <h3>Why not rely on Anthropic's dashboard alone?</h3>
+      <p>The dashboard is useful for after-the-fact reporting, but it does not stop a runaway local agent in the middle of execution. For development workflows, you usually need request-level visibility and a local kill switch.</p>
+
+      <h3>Does a local proxy change model behavior?</h3>
+      <p>It should not change model outputs if it only forwards requests and records metadata. The tradeoff is a small amount of local operational complexity because your client must target the proxy instead of the upstream API directly.</p>
+
+      <h3>Can this help with tool-heavy Claude Code sessions?</h3>
+      <p>Yes. Tool-heavy sessions are exactly where costs become hard to reason about because loops can trigger repeated tool calls and large context growth. Per-request logging makes those spikes visible immediately.</p>
+
+      <h3>What is agent-bill-guard best at and where are its limits?</h3>
+      <p>It is best at local observability and hard budget enforcement for Claude Code style workflows. Its limits are that it is not a hosted billing system, not a team dashboard, and not a replacement for careful prompt and tool design.</p>
+
+      <div class="cta">
+        <p>If you need practical <strong>anthropic api cost control</strong> during local agent runs, inspect the code and try the proxy yourself: <a href="https://github.com/paprika-org/agent-bill-guard">github.com/paprika-org/agent-bill-guard</a>.</p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>
