@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Context Window Cost: How to Measure and Control It</title>
+  <meta name="description" content="A technical guide to claude code context window cost, including how token growth happens, what actually drives spend, and how to track it with agent-bill-guard.">
+  <link rel="canonical" href="https://paprika-org.github.io/agent-bill-guard/blog-context-window-cost.html">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --links: #7dd3fc;
+      --accent: #f59e0b;
+      --borders: #24304d;
+      --code-bg: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    nav {
+      border-bottom: 1px solid var(--borders);
+      background: rgba(11, 16, 32, 0.95);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+    }
+    .nav-inner, .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 60px;
+    }
+    a {
+      color: var(--links);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    main { padding: 32px 0 56px; }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--borders);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      margin-top: 0;
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 0.6rem;
+    }
+    h2 {
+      font-size: 1.45rem;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--accent);
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 1.25rem;
+      margin-bottom: 0.35rem;
+    }
+    p, li {
+      color: var(--text);
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .note {
+      border-left: 3px solid var(--accent);
+      padding: 12px 14px;
+      background: rgba(245, 158, 11, 0.08);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--text);
+      padding: 16px;
+      overflow-x: auto;
+      border: 1px solid var(--borders);
+      border-radius: 12px;
+      font-size: 0.95rem;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+    .cta {
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--borders);
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"Claude Code Context Window Cost: How to Measure and Control It",
+    "description":"A technical guide to claude code context window cost, including how token growth happens, what actually drives spend, and how to track it with agent-bill-guard.",
+    "url":"https://paprika-org.github.io/agent-bill-guard/blog-context-window-cost.html",
+    "datePublished":"2026-05-16",
+    "dateModified":"2026-05-16",
+    "publisher":{"@type":"Organization","name":"agent-bill-guard"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Why does Claude Code get expensive during long sessions?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Long sessions accumulate more prior messages, tool outputs, and file content inside the prompt. Even if each new step is small, the model may be charged on a much larger effective context."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Does a larger context window always mean better results?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"No. A larger window only allows more tokens to be included. Irrelevant history, repeated logs, and oversized file dumps can increase cost without improving answer quality."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Can agent-bill-guard block runaway spending automatically?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Yes. It can sit between Claude Code and the Anthropic API, track each request and response, print usage details, and enforce configurable spend limits before a session gets out of hand."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Is agent-bill-guard a hosted service?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"No. It runs locally as a lightweight Python proxy using only the standard library, so you can inspect traffic and cost behavior without adding external dependencies."
+        }
+      }
+    ]
+  }
+  </script>
+  <script data-goatcounter="https://paprika-lab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html">agent-bill-guard</a>
+      <a href="https://github.com/paprika-org/agent-bill-guard">GitHub</a>
+    </div>
+  </nav>
+  <main>
+    <div class="container">
+      <article>
+        <h1>Claude Code Context Window Cost: How to Measure and Control It</h1>
+        <div class="meta">Published 2026-05-16</div>
+        <p>When people ask about <strong>claude code context window cost</strong>, they usually mean a practical problem: a coding session starts cheap, then suddenly every request is expensive and hard to explain. The root cause is rarely one big prompt. It is usually accumulated history, repeated tool output, and large file payloads being sent over and over. If you are running long-lived agent sessions, you need visibility into the token and dollar impact of every turn.</p>
+
+        <h2>What Drives Claude Code Context Window Cost</h2>
+        <p>The phrase <strong>claude code context window cost</strong> is easy to misunderstand because context window size and billable usage are related but not identical. A model can support a large window, but you only pay for the tokens actually sent and generated. In practice, cost rises when Claude Code includes conversation history, tool traces, code diffs, logs, and file contents in each request.</p>
+        <p>For developer workflows, the worst case is recursive accumulation. An agent reads a large file, writes a patch, prints a verbose tool result, then references all of that in the next step. That makes later prompts heavier even if the new instruction is just “fix the failing test.” If the session also loops through tool calls, the spend curve can become non-linear from a human perspective.</p>
+        <div class="note">
+          Cost is usually driven less by one large prompt than by repeated resubmission of prior context.
+        </div>
+
+        <h2>How to Inspect Real Usage Instead of Guessing</h2>
+        <p>The only useful way to manage context cost is to measure actual traffic. Token estimates based on file size or line counts are directionally helpful, but they do not tell you what Claude Code really sent to the API. That is where a local proxy is useful. <a href="https://github.com/paprika-org/agent-bill-guard">Agent Bill Guard</a> sits between Claude Code and the Anthropic API, intercepts requests and responses, and prints per-request token and cost details in real time.</p>
+        <p>Because it runs locally and uses only the Python standard library, it is easy to inspect and does not add another service into the loop. More importantly, it gives you enough signal to answer questions like: which prompt caused the jump, which tool call returned too much data, and whether a session should be stopped before it burns through a budget cap.</p>
+
+        <pre><code># Example local proxy setup and output
+export ANTHROPIC_BASE_URL=http://127.0.0.1:8080
+export ANTHROPIC_API_KEY=your_real_key
+
+python agent_bill_guard.py --listen 127.0.0.1:8080 --max-session-usd 5.00
+
+[req 17] model=claude input_tokens=18432 output_tokens=912
+[req 17] tools=read_file,bash
+[req 17] estimated_cost_usd=0.41 session_total_usd=3.87
+
+[req 18] model=claude input_tokens=40291 output_tokens=1104
+[req 18] tools=grep,read_file
+[req 18] estimated_cost_usd=0.79 session_total_usd=4.66
+
+[req 19] blocked: projected session total exceeds max-session-usd=5.00</code></pre>
+
+        <h2>Where Context Costs Usually Come From in Coding Agents</h2>
+        <p>In a typical repo workflow, most <strong>claude code context window cost</strong> comes from a few predictable patterns. First, tools that dump too much text: full file contents, test logs, stack traces, or command output that should have been truncated. Second, broad file selection: asking the agent to “read the codebase” instead of narrowing to specific modules. Third, retries: a failed edit or tool invocation can cause the same bulky context to be resent several times.</p>
+        <p>There is also a hidden multiplier effect. Tool output often becomes part of the model-visible conversation, and the model may summarize or reason over it in the next turn. If that output was noisy, you pay once to generate it and again to carry it forward. This is why terminal verbosity matters financially, not just aesthetically.</p>
+        <p>One honest limitation: request-level accounting does not automatically tell you which exact line of prompt history was worth keeping. A proxy can show that a call was expensive, but deciding what to prune still requires workflow discipline and sometimes changes in the agent’s prompting strategy.</p>
+
+        <h2>Practical Ways to Reduce Claude Code Context Window Cost</h2>
+        <p>Start by minimizing unnecessary context at the source. Prefer targeted file reads over whole-directory scans. Keep tool output concise. Truncate logs aggressively and rerun commands with narrower filters. If a task changes scope, start a fresh session instead of dragging old reasoning and unrelated files forward forever.</p>
+        <p>At the infrastructure layer, add guardrails. A local proxy with spend caps is useful because it catches the cases where discipline fails. Agent Bill Guard can stop a runaway loop before it quietly turns into a billing surprise. That is more reliable than expecting every prompt author to manually watch token growth.</p>
+        <p>Another practical step is to compare per-request cost before and after prompt changes. If adding more instructions improves accuracy but doubles median request size, that may still be worth it. But you should know that tradeoff explicitly rather than discovering it from the invoice.</p>
+
+        <h2>Common Mistakes</h2>
+        <p>The first common mistake is assuming the model’s maximum context window is the same thing as normal operating cost. It is not. You may be far below the hard limit and still spending too much because each turn keeps dragging along stale history and oversized tool output.</p>
+        <p>The second mistake is measuring only successful final answers. Failed tool calls, retries, and exploratory reads can consume a large share of total spend. If you only inspect the “winning” prompt, you will miss the real source of cost.</p>
+        <p>A third pitfall is treating cost as a postmortem metric. By the time you check a dashboard, the session has already spent the money. Real-time interception and budget enforcement are more useful than retrospective summaries when agents are running unattended.</p>
+
+        <h2>Frequently Asked Questions</h2>
+        <h3>Why does Claude Code get expensive during long sessions?</h3>
+        <p>Long sessions accumulate more prior messages, tool outputs, and file content inside the prompt. Even if each new step is small, the model may be charged on a much larger effective context.</p>
+
+        <h3>Does a larger context window always mean better results?</h3>
+        <p>No. A larger window only allows more tokens to be included. Irrelevant history, repeated logs, and oversized file dumps can increase cost without improving answer quality.</p>
+
+        <h3>Can agent-bill-guard block runaway spending automatically?</h3>
+        <p>Yes. It can sit between Claude Code and the Anthropic API, track each request and response, print usage details, and enforce configurable spend limits before a session gets out of hand.</p>
+
+        <h3>Is agent-bill-guard a hosted service?</h3>
+        <p>No. It runs locally as a lightweight Python proxy using only the standard library, so you can inspect traffic and cost behavior without adding external dependencies.</p>
+
+        <p class="cta">If you need a concrete way to inspect <strong>claude code context window cost</strong> instead of guessing, review the code and setup for <a href="https://github.com/paprika-org/agent-bill-guard">agent-bill-guard on GitHub</a>. It is a small local tool, but it gives you the two things most teams actually need: request-level visibility and hard spend limits.</p>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
